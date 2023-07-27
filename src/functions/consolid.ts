@@ -6,6 +6,7 @@ import { Catalog, CONSOLID, getRoot } from 'consolid-daapi';
 import { ReferenceRegistry } from 'consolid-raapi';
 import { v4 } from 'uuid';
 
+
 async function getSparqlSatellite(webId: string) {
     if (webId === undefined) return undefined
     const myEngine = new QueryEngine()
@@ -78,7 +79,6 @@ async function addDatasetToProject(projectUrl: string, datasetUrl?: string, file
     return datasetUrl
 }
 
-// function to split url into root and id
 function splitUrl(url: string) {
     const root = url.substring(0, url.lastIndexOf('/') + 1)
     const id = url.substring(url.lastIndexOf('/') + 1)
@@ -136,105 +136,4 @@ async function addPartialProjectsToProject(projectUrl: string, partialProjects: 
     }
 }
 
-async function findSolidLDNInbox(webId: string) {
-    const myEngine = new QueryEngine()
-    const query = `
-    prefix ldp: <http://www.w3.org/ns/ldp#> 
-    SELECT * WHERE { <${webId}> ldp:inbox ?inbox }`
-    const result: Bindings[] = await queryWithComunica(myEngine, query, [webId])
-    if (result && result.length) {
-        return result[0].get('inbox')!.value
-    } else {
-        return undefined
-    }
-}
-
-async function postLDN(message: string, inbox: string, id: string) {
-    const response = await fetch(inbox, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'text/turtle',
-            'Slug': id,
-            'Link': '<http://www.w3.org/ns/ldp#Resource>; rel="type"'
-        },
-        body: JSON.stringify(message)
-    })
-    return response
-}
-
-async function createNotification(sender: string, receiver: string, message: string, topic: string) {
-    const id = v4()
-    const inbox = await findSolidLDNInbox(receiver)
-
-    if (!inbox) {
-        throw new Error('No inbox found for receiver')
-    }
-
-    let t
-    if (topic.startsWith('http')) {
-        t = `<${topic}>`
-    } else {
-        t = `"${topic}"`
-    }
-    const now = new Date()
-
-    message.replace("<>", `<${inbox}/${id}/message>`)
-
-    const content = `
-    @prefix as: <https://www.w3.org/ns/activitystreams#> .
-    @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-    @prefix oa: <http://www.w3.org/ns/oa#> .
-    @prefix dcterms: <http://purl.org/dc/terms/> .
-    @prefix consolid: <https://w3id.org/consolid#> .
-    @prefix foaf: <http://xmlns.com/foaf/0.1/> .
-
-    <${inbox}/${id}>
-      a as:Announce ;
-      as:actor <${sender}> ;
-      foaf:primaryTopic ${topic} .
-      as:object <${inbox}/${id}/message> ;
-      dcterms:created "${now.getDate()}"^^xsd:dateTime .
-      
-    ${message}`
-
-    const response = await postLDN(content, inbox, id)
-    return response
-}
-
-async function announceProjectAggregation(sender: string, receiver: string, source: string, partial: string) {
-    const message = `
-@prefix consolid: <https://w3id.org/consolid#> .
-<> a consolid:ProjectAggregationEvent ;
-    consolid:source <${source}> ;
-    consolid:partial <${partial}> .`
-
-    const topic = "http://w3id.org/conSolid/ProjectAggregation"
-    const notification = await createNotification(sender, receiver, message, topic)
-    return notification
-}
-
-async function announceAnnotation(sender: string, receiver: string, body: string, target: string) {
-    const message = `
-@prefix oa: <http://www.w3.org/ns/oa#> .
-<> a oa:AnnotationEvent ;
-    oa:hasBody <${body}> ;
-    oa:hasTarget <${target}> .`
-
-    const topic = "http://www.w3.org/ns/oa#Annotation"
-    const notification = await createNotification(sender, receiver, message, topic)
-    return notification
-}
-
-async function announceCollectionAggregation(sender: string, receiver: string, collection: string, alias: string) {
-    const message = `
-@prefix oa: <http://www.w3.org/ns/oa#> .
-<> a consolid:CollectionAggregationEvent ;
-    consolid:collection <${collection}> ;
-    consolid:alias <${alias}> .`
-
-    const topic = "http://www.w3.org/ns/oa#Annotation"
-    const notification = await createNotification(sender, receiver, message, topic)
-    return notification
-}
-
-export { getSparqlSatellite, getConSolidProjects, createProject, getConSolidProjectById, addDatasetToProject, getAccessPointUrl, addPartialProjectsToProject, findSolidLDNInbox }
+export { getSparqlSatellite, getConSolidProjects, createProject, getConSolidProjectById, addDatasetToProject, getAccessPointUrl, addPartialProjectsToProject }

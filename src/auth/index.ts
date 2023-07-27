@@ -1,5 +1,5 @@
 import {v4} from "uuid"
-
+import {fetch} from "cross-fetch"
 
 async function generateFetch(email: string, password: string, idp: string) {
     try {

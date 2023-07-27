@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 
-function checkOwnerShip(req: Request, res: Response, next: NextFunction) {
+function checkOwnership(req: Request, res: Response, next: NextFunction) {
     if (req.auth.webId === process.env.WEBID) {
       next()
     } else {
@@ -9,4 +9,4 @@ function checkOwnerShip(req: Request, res: Response, next: NextFunction) {
   }
   
   
-export {checkOwnerShip};
+export {checkOwnership};

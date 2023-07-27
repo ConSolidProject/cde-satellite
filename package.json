@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon -r dotenv/config --exec ts-node src/app.ts",
+    "owner": "env-cmd -f owner.env nodemon --exec ts-node src/app.ts",
+    "architect": "env-cmd -f architect.env nodemon --exec ts-node src/app.ts",
+    "engineer": "env-cmd -f engineer.env nodemon --exec ts-node src/app.ts",
+    "fm": "env-cmd -f fm.env nodemon --exec ts-node src/app.ts",
     "build": "tsc"
   },
   "keywords": [],
@@ -30,6 +33,7 @@
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "env-cmd": "^10.1.0"
   }
 }

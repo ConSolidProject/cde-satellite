@@ -6,7 +6,7 @@ interface Options {
 }
 
 async function queryWithComunica(myEngine  : IQueryEngine, query: string, sources : [IDataSource, ...IDataSource[]], {quads} : Options = {quads: false}): Promise<Bindings[]> {
-    const result = await myEngine.queryBindings(query, {sources});
+    const result = await myEngine.queryBindings(query, {sources, fetch: session.fetch});
         const data: Bindings[] = await result.toArray()
         return data;
 }
