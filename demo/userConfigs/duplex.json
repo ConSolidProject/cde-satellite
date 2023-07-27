@@ -1,0 +1,28 @@
+{
+    "owner": {
+        "name": "owner-duplex",
+        "password": "test123",
+        "sparqlSatellite": "https://sparql.werbrouck.me/owner/sparql",
+        "consolid": "http://localhost:5001/",
+        "resources": []
+    },
+    "architect":  {
+        "name": "architect-duplex",
+        "password": "test123",
+        "resources": ["./resources/duplex.ttl"],
+        "consolid": "http://localhost:5002/"
+    },
+    "engineer": {
+        "name": "engineer-duplex",
+        "password": "test123",
+        "resources": ["./resources/duplex.gltf"],
+        "consolid": "http://localhost:5003/"
+    },
+    "fm": {
+        "name": "fm-duplex",
+        "password": "test123",
+        "consolid": "http://localhost:5004/",
+        "resources": ["./resources/crack.jpg"]
+
+    }
+}

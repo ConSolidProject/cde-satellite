@@ -1,85 +1,61 @@
-import { create } from 'domain'
-import { generateFetch } from '../src/auth'
-import { createPod } from './createPod'
-import { sparqlUpdateViaRESTAPI } from './sparqlUpdate'
-import fetch from 'cross-fetch'
+import { prepareFirstUse } from "./createPod";
+import {inviteToProject} from '../src/functions/notifications'
 
-const actors: any = {
-    "owner": {
-        "name": "owner-duplex",
-        "password": "test123",
-        "sparqlSatellite": "https://sparql.werbrouck.me/owner/sparql",
-        "resources": []
-    },
-    "architect":  {
-        "name": "architect-duplex",
-        "password": "test123",
-        "resources": ["./resources/duplex.ttl"]
-    },
-    "fm": {
-        "name": "fm-duplex",
-        "password": "test123",
-        "resources": ["./resources/crack.jpg"]
+const project = "duplex"
+const actors = require(`./userConfigs/${project}.json`)
 
-    },
-    "engineer": {
-        "name": "engineer-duplex",
-        "password": "test123",
-        "resources": ["./resources/duplex.gltf"]
-    }
-}
-
-async function prepareFirstUse() {
+async function prepare() {
     for (const actor of Object.keys(actors)) {
-        actors[actor].webId = `https://pod.werbrouck.me/${actors[actor].name}/profile/card#me`
-        actors[actor].email = `${actors[actor].name}@example.org`
-        actors[actor].inboxMail = `inbox_${actors[actor].name}@example.org`
-        actors[actor].inbox = `https://pod.werbrouck.me/inbox_${actors[actor].name}/`
-        actors[actor].sparqlSatellite = `https://sparql.werbrouck.me/${actors[actor].name}/sparql`
-        actors[actor].consolid = `http://localhost:500${actors[actor].name === "owner" ? 1 : actors[actor].name === "architect" ? 2 : actors[actor].name === "fm" ? 3 : 4}/`
-        actors[actor].idp = "https://pod.werbrouck.me"
-
-        const exists = await fetch(actors[actor].webId, { method: 'HEAD' }).then(res => res.ok)
-        if (!exists) {
-            await createPod(actors[actor])
-        }
-
-        const inboxExists = await fetch(actors[actor].inbox, { method: 'HEAD' }).then(res => res.ok)
-        if (!inboxExists) {
-            await createPod(actors[actor], "inbox")
-        }
-
-        const authFetch = await generateFetch(actors[actor].email, actors[actor].password, actors[actor].idp)
-        actors[actor].fetch = authFetch
-
-        await sparqlUpdateViaRESTAPI(actors[actor].webId, `INSERT DATA { <${actors[actor].webId}> <https://w3id.org/consolid#hasSparqlSatellite> <${actors[actor].sparqlSatellite}> }`, authFetch)
-        await sparqlUpdateViaRESTAPI(actors[actor].webId, `INSERT DATA { <${actors[actor].webId}> <https://w3id.org/consolid#hasConSolidSatellite> <${actors[actor].consolid}> }`, authFetch)
-        await sparqlUpdateViaRESTAPI(actors[actor].webId, `INSERT DATA { <${actors[actor].webId}> <http://www.w3.org/ns/ldp#inbox> <${actors[actor].inbox}> }`, authFetch)
-
-        const inboxFetch = await generateFetch(actors[actor].inboxMail, actors[actor].password, actors[actor].idp)
-
-        await sparqlUpdateViaRESTAPI(`${actors[actor].inbox}.acl`, `
-        @prefix acl: <http://www.w3.org/ns/auth/acl#> .
-        INSERT DATA { 
-            <#owner> acl:agent <${actors[actor].webId}> , <${actors[actor].email}> .
-        }
-        DELETE DATA {
-            a acl:Authorization;
-            acl:agentClass foaf:Agent;
-            acl:accessTo <./>;
-            acl:mode acl:Read.
-
-        }`, inboxFetch)
+        const a = await prepareFirstUse(actors[actor])
+        actors[actor] = a
     }
 }
 
-async function run() {
-    await prepareFirstUse()
+async function createProjectProtocol() {
+    // the architect creates a project in their Pod
+    const projectUrl = await createProject(actors.architect)
+
+    // the architect notifies the others of the project by sending them a message
+    for (const actor of Object.keys(actors)) {
+        if (actor !== 'architect') {
+            await sendMessage(actors.architect, actors[actor], projectUrl)
+        }
+    }
+
+    // the others check their inbox and see the message
+
+    // the others accept the invitation and create the project in their Pod, adding the one from the architect as a partial project
+
+    // the others notify the architect of their project creation
+
+    // the architect includes the partial project from the others in their project
 
 }
 
+async function createProject(actor: any) {
+    const body = {
+        "metadata": [
+            {
+              "predicate": "http://www.w3.org/2000/01/rdf-schema#label",
+              "object": "Duplex"
+            }
+          ]
+    }
+    return await actor.fetch(actor.consolid + "project/create", {method: 'POST', body: JSON.stringify(body)}).then((res: any) => res.text())
+}
+
+async function sendMessage(sender: any, receiver: any, projectUrl: string) {
+    const body = {
+        "type": "projectInvite",
+        "to": receiver.webId,
+        "projectId": projectUrl
+    }
+    await sender.fetch(sender.consolid + "send", {method: 'POST', body: JSON.stringify(body)}).then((res: any) => res.text())
+}
 
 const now = new Date()
-run().then(() => {
+prepare()
+// .then(createProjectProtocol)
+.then(() => {
     console.log('duration: ', new Date().getTime() - now.getTime())
 })
