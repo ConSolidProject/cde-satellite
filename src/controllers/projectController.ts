@@ -6,7 +6,6 @@ const ProjectController = {
     const projectUrl = await createProject(req.auth.webId, req.body.existingPartialProjects, req.body.projectId, req.body.refRegId)
     res.status(201).send(projectUrl)
   },
-  
   async getConSolidProject(req: Request, res: Response) {
     const satellite = await getSparqlSatellite(req.auth.webId)
     if (satellite) {

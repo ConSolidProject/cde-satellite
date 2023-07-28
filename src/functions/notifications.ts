@@ -3,6 +3,7 @@ import { queryWithComunica } from './general';
 import {  Bindings } from '@comunica/types';
 import { v4 } from 'uuid';
 import { getSparqlSatellite } from './consolid';
+import { FOAF } from '@inrupt/vocab-common-rdf';
 
 export async function findSolidLDNInbox(webId: string) {
     const myEngine = new QueryEngine()
@@ -12,6 +13,19 @@ export async function findSolidLDNInbox(webId: string) {
     const result: Bindings[] = await queryWithComunica(myEngine, query, [webId])
     if (result && result.length) {
         return result[0].get('inbox')!.value
+    } else {
+        return undefined
+    }
+}
+
+export async function findApiInbox(webId: string) {
+    const myEngine = new QueryEngine()
+    const query = `
+    prefix consolid: <https://w3id.org/consolid#>
+    SELECT * WHERE { <${webId}> consolid:hasConSolidSatellite ?inbox }`
+    const result: Bindings[] = await queryWithComunica(myEngine, query, [webId])
+    if (result && result.length) {
+        return result[0].get('inbox')!.value + "inbox"
     } else {
         return undefined
     }
@@ -30,9 +44,28 @@ export async function postLDN(message: string, inbox: string, id: string) {
     return response
 }
 
+export async function postMessageToSatellite(message: string, inbox: string, id: string, type) {
+    const body = {
+        message,
+        type
+    }
+
+
+    const response = await fetch(inbox, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Slug': id,
+            'Link': '<http://www.w3.org/ns/ldp#Resource>; rel="type"'
+        },
+        body: JSON.stringify(body)
+    })
+    return response
+}
+
 export async function createNotification(sender: string, receiver: string, message: string, messageType: string = "triplePattern", description: string, topic: string) {
     const id = v4()
-    const inbox = await findSolidLDNInbox(receiver)
+    const inbox = await findApiInbox(receiver)
 
     if (!inbox) {
         throw new Error('No inbox found for receiver')
@@ -66,21 +99,22 @@ export async function createNotification(sender: string, receiver: string, messa
 
     <${inbox}/${id}> a as:Announce ;
       as:actor <${sender}> ;
-      foaf:primaryTopic ${topic} .
+      foaf:primaryTopic ${t} ;
       dcterms:description "${description}" ;
       as:object <${m}> ;
       dcterms:created "${now.getDate()}"^^xsd:dateTime ;
       solid:read "false" .
       
-    ${message}`
+    ${messageContent}`
 
-    const response = await postLDN(content, inbox, id)
+    const response = await postMessageToSatellite(content, inbox, id, topic)
     return response
 }
 
 export async function announceAnnotationCreation(sender: string, receiver: string, body: string, target: string) {
     const message = `
 @prefix oa: <http://www.w3.org/ns/oa#> .
+
 <> a oa:AnnotationEvent ;
     oa:hasBody <${body}> ;
     oa:hasTarget <${target}> .`
@@ -95,6 +129,7 @@ export async function announceAnnotationCreation(sender: string, receiver: strin
 export async function announceCollectionAggregation(sender: string, receiver: string, collection: string, alias: string) {
     const message = `
 @prefix oa: <http://www.w3.org/ns/oa#> .
+@prefix consolid: <https://w3id.org/consolid#> .
 <> a consolid:CollectionAggregationEvent ;
     consolid:collection <${collection}> ;
     consolid:alias <${alias}> .`
@@ -118,9 +153,9 @@ export async function inviteToProject(sender: string, receiver: string, projectU
 export async function queryInbox(webId: string, query: string) {
     const inbox = await findSolidLDNInbox(webId)
     if (!inbox) {
-        throw new Error('No inbox found for receiver')
+        throw new Error('No inbox found for receiver') 
     }
-    const satellite = await getSparqlSatellite(inbox)
+    const satellite = await getSparqlSatellite(inbox + "profile/card#me")
     if (!satellite) {
         throw new Error('No satellite found for inbox')
     }
@@ -131,26 +166,30 @@ export async function queryInbox(webId: string, query: string) {
 
 export async function findPendingNotificationsByTopic(webId: string, topic: string) {
     const query = `
+    prefix solid: <http://www.w3.org/ns/solid/terms#>
 SELECT ?notification ?p ?o WHERE {
     ?notification solid:read "false" ;
-    foaf:primaryTopic <${topic}> .
-}`
-    const results = queryInbox(webId, query)
+    <${FOAF.primaryTopic}> <${topic}> ;
+    ?p ?o .
+}`   
+    const results = await queryInbox(webId, query)
     return results
 }
 
 export async function findAllPendingNotifications(webId: string) {
     const query = `
+    prefix solid: <http://www.w3.org/ns/solid/terms#>
 SELECT ?sender ?p ?o WHERE {
     ?notification solid:read "false" ;
     ?p ?o .
 }`
-    const results = queryInbox(webId, query)
+    const results = await queryInbox(webId, query)
     return results
 }
 
 export async function markNotificationAsRead(notificationUrl: string) {
-    const query = `
+    const query = `prefix solid: <http://www.w3.org/ns/solid/terms#>
+
     DELETE {<${notificationUrl}> solid:read "false" .}
     INSERT {<${notificationUrl}> solid:read "true" .}
     WHERE {<${notificationUrl}> solid:read "false" .}`

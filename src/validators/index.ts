@@ -6,11 +6,11 @@ interface IValidator {
   }
 
 export const validatorFunctions: IValidator = {
-    "projectInvite": {function: validateProjectInvite, shape: "https://consolid.org/shapes/projectInviteShape.ttl"},
+    "http://w3id.org/conSolid/ProjectCreation": {function: validateProjectInvite, shape: "https://consolid.org/shapes/projectInviteShape.ttl"},
 }
 
 export async function validateProjectInvite(message: string) {
-    const shape = validatorFunctions["projectInvite"].shape
+    const shape = validatorFunctions["http://w3id.org/conSolid/ProjectCreation"].shape
     const valid = await validate(message, shape)
     return valid
 }

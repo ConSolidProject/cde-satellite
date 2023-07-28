@@ -1,7 +1,7 @@
 import fetch from 'cross-fetch'
 import { generateFetch } from '../src/auth'
 import { sparqlUpdateViaRESTAPI } from './sparqlUpdate'
-
+import { ACL, FOAF } from '@inrupt/vocab-common-rdf'
 export async function createPod(user: any, type: string = "person") {
   let name, email
   if (type === "person") {
@@ -9,7 +9,7 @@ export async function createPod(user: any, type: string = "person") {
       email = user.email
   } else if (type === "inbox") {
     name = `inbox_${user.name}`,
-    email = user.inboxMail
+      email = user.inboxMail
   }
 
   const json = {
@@ -32,48 +32,53 @@ export async function createPod(user: any, type: string = "person") {
 export async function prepareFirstUse(actor: any) {
   actor.webId = `https://pod.werbrouck.me/${actor.name}/profile/card#me`
   actor.email = `${actor.name}@example.org`
+  actor.sparqlSatellite = `https://sparql.werbrouck.me/${actor.name}/sparql`
+
   actor.inboxMail = `inbox_${actor.name}@example.org`
   actor.inbox = `https://pod.werbrouck.me/inbox_${actor.name}/`
-  actor.sparqlSatellite = `https://sparql.werbrouck.me/${actor.name}/sparql`
+  actor.inboxWebId = actor.inbox + 'profile/card#me'
+  actor.inboxSparqlSatellite = `https://sparql.werbrouck.me/inbox_${actor.name}/sparql`
   actor.idp = "https://pod.werbrouck.me"
 
   const exists = await fetch(actor.webId, { method: 'HEAD' }).then(res => res.ok)
   if (!exists) {
-      await createPod(actor)
+    await createPod(actor)
   }
 
   const inboxExists = await fetch(actor.inbox, { method: 'HEAD' }).then(res => res.ok)
   if (!inboxExists) {
-      await createPod(actor, "inbox")
+    await createPod(actor, "inbox")
   }
 
   const authFetch = await generateFetch(actor.email, actor.password, actor.idp)
   actor.fetch = authFetch
 
-  await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <https://w3id.org/consolid#hasSparqlSatellite> <${actor.sparqlSatellite}> }`, authFetch)
-  await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <https://w3id.org/consolid#hasConSolidSatellite> <${actor.consolid}> }`, authFetch)
-  await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <http://www.w3.org/ns/ldp#inbox> <${actor.inbox}> }`, authFetch)
+  if (!exists) {
+    await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <https://w3id.org/consolid#hasSparqlSatellite> <${actor.sparqlSatellite}> }`, authFetch)
+    await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <https://w3id.org/consolid#hasConSolidSatellite> <${actor.consolid}> }`, authFetch)
+    await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <http://www.w3.org/ns/ldp#inbox> <${actor.inbox}> }`, authFetch)
+  }
 
-  const inboxFetch = await generateFetch(actor.inboxMail, actor.password, actor.idp)
+  if (!inboxExists) {
+    const inboxFetch = await generateFetch(actor.inboxMail, actor.password, actor.idp)
+    await sparqlUpdateViaRESTAPI(actor.inboxWebId, `INSERT DATA { <${actor.inboxWebId}> <https://w3id.org/consolid#hasSparqlSatellite> <${actor.inboxSparqlSatellite}> }`, inboxFetch)
 
-
-
-  await sparqlUpdateViaRESTAPI(`${actor.inbox}.acl`, `
-  prefix acl: <http://www.w3.org/ns/auth/acl#>
-  prefix foaf: <http://xmlns.com/foaf/0.1/>
+    let query = `
   DELETE DATA {
-      <#public> a acl:Authorization;
-      acl:agentClass foaf:Agent;
-      acl:accessTo <./>;
-      acl:mode acl:Read.
+      <${actor.inbox}.acl#public> a <${ACL.Authorization}>;
+      <${ACL.agentClass}> <${FOAF.Agent}>;
+      <${ACL.accessTo}> <${actor.inbox}>;
+      <${ACL.mode}> <${ACL.Read}>.
+  }`
 
-  }`, inboxFetch)
+    await sparqlUpdateViaRESTAPI(`${actor.inbox}.acl`, query, inboxFetch)
 
-  await sparqlUpdateViaRESTAPI(`${actor.inbox}.acl`, `
-  prefix acl: <http://www.w3.org/ns/auth/acl#>
-  INSERT DATA { 
-    <#owner> acl:agent <${actor.webId}> , <${actor.email}> .
-}`, inboxFetch)
+    query = `
+INSERT DATA { 
+  <${actor.inbox}.acl#owner> <http://www.w3.org/ns/auth/acl#agent> <${actor.webId}> .
+}`
 
-return actor
+    await sparqlUpdateViaRESTAPI(`${actor.inbox}.acl`, query, inboxFetch)
+  }
+  return actor
 }

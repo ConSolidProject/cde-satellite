@@ -6,4 +6,7 @@ const router = express.Router();
 router.post('/inbox', InboxController.postMessage);
 router.get('/inbox', checkOwnership, InboxController.getMessages);
 
-export default router;
+router.post('/send', checkOwnership, InboxController.sendMessage)
+
+export default router; 
+  
