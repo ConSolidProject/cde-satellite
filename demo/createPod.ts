@@ -2,6 +2,10 @@ import fetch from 'cross-fetch'
 import { generateFetch } from '../src/auth'
 import { sparqlUpdateViaRESTAPI } from './sparqlUpdate'
 import { ACL, FOAF } from '@inrupt/vocab-common-rdf'
+
+const domain = "http://localhost:3000"
+const sparqlDomain = "http:localhost:3001"
+
 export async function createPod(user: any, type: string = "person") {
   let name, email
   if (type === "person") {
@@ -30,15 +34,15 @@ export async function createPod(user: any, type: string = "person") {
 }
 
 export async function prepareFirstUse(actor: any) {
-  actor.webId = `https://pod.werbrouck.me/${actor.name}/profile/card#me`
+  actor.webId = `${domain}/${actor.name}/profile/card#me`
   actor.email = `${actor.name}@example.org`
-  actor.sparqlSatellite = `https://sparql.werbrouck.me/${actor.name}/sparql`
+  actor.sparqlSatellite = `${sparqlDomain}/${actor.name}/sparql`
 
   actor.inboxMail = `inbox_${actor.name}@example.org`
-  actor.inbox = `https://pod.werbrouck.me/inbox_${actor.name}/`
+  actor.inbox = `${domain}/inbox_${actor.name}/`
   actor.inboxWebId = actor.inbox + 'profile/card#me'
-  actor.inboxSparqlSatellite = `https://sparql.werbrouck.me/inbox_${actor.name}/sparql`
-  actor.idp = "https://pod.werbrouck.me"
+  actor.inboxSparqlSatellite = `${sparqlDomain}/inbox_${actor.name}/sparql`
+  actor.idp = domain
 
   const exists = await fetch(actor.webId, { method: 'HEAD' }).then(res => res.ok)
   if (!exists) {
@@ -51,7 +55,7 @@ export async function prepareFirstUse(actor: any) {
   }
 
   const authFetch = await generateFetch(actor.email, actor.password, actor.idp)
-  actor.fetch = authFetch
+  actor.fetch = authFetch 
 
   if (!exists) {
     await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <https://w3id.org/consolid#hasSparqlSatellite> <${actor.sparqlSatellite}> }`, authFetch)
@@ -80,5 +84,23 @@ INSERT DATA {
 
     await sparqlUpdateViaRESTAPI(`${actor.inbox}.acl`, query, inboxFetch)
   }
+  await waitUntilAvailable(actor.sparqlSatellite)
+  await waitUntilAvailable(actor.inboxSparqlSatellite)
   return actor
+}
+
+// wait until a url is available via a HEAD request
+async function waitUntilAvailable(url: string) {
+  let available = false
+  while (!available) {
+      await wait(1000)
+      const response = await fetch(url, { method: 'HEAD' })
+      available = response.status === 200
+  }
+  return true
+}
+
+// wait for 5 seconds
+export function wait(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

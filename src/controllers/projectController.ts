@@ -3,6 +3,7 @@ import { getConSolidProjects, getSparqlSatellite, createProject, getConSolidProj
 
 const ProjectController = {
   async createConSolidProject(req: Request, res: Response) {
+    console.log('req.body :>> ', req.body);
     const projectUrl = await createProject(req.auth.webId, req.body.existingPartialProjects, req.body.projectId, req.body.refRegId)
     res.status(201).send(projectUrl)
   },
@@ -28,6 +29,8 @@ const ProjectController = {
     const satellite = await getSparqlSatellite(req.auth.webId)
     if (satellite) {
       const projectUrl = await getAccessPointUrl(satellite, req.params.projectId)
+      console.log('projectUrl :>> ', projectUrl);
+      console.log('req.body.partialProjects :>> ', req.body.partialProjects);
       await addPartialProjectsToProject(projectUrl, req.body.partialProjects)
       res.status(201).send('Stakeholders added')
     } else {

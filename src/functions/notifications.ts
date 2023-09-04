@@ -50,7 +50,9 @@ export async function postMessageToSatellite(message: string, inbox: string, id:
         type
     }
 
-
+    console.log('inbox :>> ', inbox);
+    console.log('message :>> ', message);
+    
     const response = await fetch(inbox, {
         method: 'POST',
         headers: {
@@ -66,7 +68,7 @@ export async function postMessageToSatellite(message: string, inbox: string, id:
 export async function createNotification(sender: string, receiver: string, message: string, messageType: string = "triplePattern", description: string, topic: string) {
     const id = v4()
     const inbox = await findApiInbox(receiver)
-
+    const inboxPod = await findSolidLDNInbox(receiver)
     if (!inbox) {
         throw new Error('No inbox found for receiver')
     }
@@ -81,12 +83,12 @@ export async function createNotification(sender: string, receiver: string, messa
 
     let m, messageContent
     if (messageType.toLowerCase() === "url") {
-        m = message
+        m = `<${message}>`
         messageContent = ""
     } else {
         m = `<${inbox}/${id}#message>`
         message.replace("<>", `<${inbox}/${id}#message>`)
-        messageContent = message
+        messageContent = `<${inbox}/${id}#message> rdf:value "${message}" .`
     }
     const content = `
     @prefix as: <https://www.w3.org/ns/activitystreams#> .
@@ -96,17 +98,19 @@ export async function createNotification(sender: string, receiver: string, messa
     @prefix consolid: <https://w3id.org/consolid#> .
     @prefix foaf: <http://xmlns.com/foaf/0.1/> .
     @prefix solid: <http://www.w3.org/ns/solid/terms#> .
+    @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 
-    <${inbox}/${id}> a as:Announce ;
+    <${inboxPod}${id}> a as:Announce ;
       as:actor <${sender}> ;
       foaf:primaryTopic ${t} ;
       dcterms:description "${description}" ;
-      as:object <${m}> ;
+      as:object ${m} ;
       dcterms:created "${now.getDate()}"^^xsd:dateTime ;
       solid:read "false" .
       
     ${messageContent}`
 
+    console.log('content :>> ', content);
     const response = await postMessageToSatellite(content, inbox, id, topic)
     return response
 }
@@ -150,6 +154,15 @@ export async function inviteToProject(sender: string, receiver: string, projectU
     return notification
 }
 
+export async function informOfAggregation(sender: string, receiver: string, localUrl: string, remoteUrl: string) {
+    const description = `Your project with URL ${remoteUrl} has been aggregated by another project with URL ${localUrl}.`	
+    const topic = "http://w3id.org/conSolid/ProjectAggregation"
+    const message = `<${localUrl}> <http://www.w3.org/ns/dcat#dataset> <${remoteUrl}> .`
+
+    const notification = await createNotification(sender, receiver, message, "triplePattern", description, topic)
+    return notification
+}
+
 export async function queryInbox(webId: string, query: string) {
     const inbox = await findSolidLDNInbox(webId)
     if (!inbox) {
@@ -166,33 +179,29 @@ export async function queryInbox(webId: string, query: string) {
 
 export async function findPendingNotificationsByTopic(webId: string, topic: string) {
     const query = `
-    prefix solid: <http://www.w3.org/ns/solid/terms#>
-SELECT ?notification ?p ?o WHERE {
-    ?notification solid:read "false" ;
+SELECT ?notification WHERE {
+    ?notification <http://www.w3.org/ns/solid/terms#read> "false" ;
     <${FOAF.primaryTopic}> <${topic}> ;
-    ?p ?o .
 }`   
-    const results = await queryInbox(webId, query)
+    console.log('query :>> ', query); 
+    const results = await queryInbox(webId, query).then((res: any) => res.map((b: any) => b.get('notification').value))
+    console.log('results :>> ', results);
     return results
 }
 
 export async function findAllPendingNotifications(webId: string) {
     const query = `
-    prefix solid: <http://www.w3.org/ns/solid/terms#>
-SELECT ?sender ?p ?o WHERE {
-    ?notification solid:read "false" ;
-    ?p ?o .
+SELECT ?notification WHERE {
+    ?notification <http://www.w3.org/ns/solid/terms#read> "false" ;
 }`
     const results = await queryInbox(webId, query)
     return results
 }
 
 export async function markNotificationAsRead(notificationUrl: string) {
-    const query = `prefix solid: <http://www.w3.org/ns/solid/terms#>
-
-    DELETE {<${notificationUrl}> solid:read "false" .}
-    INSERT {<${notificationUrl}> solid:read "true" .}
-    WHERE {<${notificationUrl}> solid:read "false" .}`
+    const query = `DELETE {<${notificationUrl}> <http://www.w3.org/ns/solid/terms#read> "false" .}
+    INSERT {<${notificationUrl}> <http://www.w3.org/ns/solid/terms#read> "true" .}
+    WHERE {<${notificationUrl}> <http://www.w3.org/ns/solid/terms#read> "false" .}`
 
     const response = await fetch(notificationUrl, {
         method: 'PATCH',

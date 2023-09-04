@@ -33,8 +33,9 @@ async function createProject(webId: string, existingPartialProjects: string[] = 
     }, { predicate: DCTERMS.identifier, object: projectId }]
 
     await project.create(true, metadata)
-
+    
     for (const existing of existingPartialProjects) {
+        console.log('existing :>> ', existing);
         project.addDataset(existing)
     }
 

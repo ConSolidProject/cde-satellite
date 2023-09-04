@@ -12,7 +12,7 @@ app.use(extractWebId)
 for (const route of routes) {
   app.use(route);
 }
-
+ 
 app.listen(process.env.PORT, async () => {
   console.log('Server listening on port ' + process.env.PORT);
 

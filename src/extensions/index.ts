@@ -10,9 +10,9 @@ interface info {
   webId: string,
   isLoggedIn: boolean
 }
-
+ 
 declare global {
-  namespace Express {
+  namespace Express { 
     interface Request {
       auth: {
         webId: string;
@@ -23,4 +23,4 @@ declare global {
   }
   function authFetch(input: RequestInfo, init?: RequestInit): Promise<Response>;
   var session: any
-}
+} 

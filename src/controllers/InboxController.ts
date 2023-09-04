@@ -12,12 +12,13 @@ const InboxController = {
             res.status(404).send("No inbox found")
         } else {
             const cat = new Catalog(session, inbox)
-            const messageId = v4()
+            const messageId = req.headers.slug ? req.headers.slug : v4()
             const messageUrl = inbox + messageId
             const messageContent = req.body.message
             const messageType: string = req.body.type
 
 
+            console.log('req.body.type :>> ', req.body.type);
             if (!messageType || !messageContent) {
                 return res.status(400).send("Message type and content are required")
             }
@@ -35,7 +36,7 @@ const InboxController = {
 
             await cat.dataService.writeFileToPod(Buffer.from(messageContent), messageUrl, false, "text/turtle")
             return res.status(200).send("Message received")
-        }
+        } 
     },
  
     async getMessages(req: Request, res: Response) {
