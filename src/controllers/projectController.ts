@@ -4,7 +4,7 @@ import { getConSolidProjects, getSparqlSatellite, createProject, getConSolidProj
 const ProjectController = {
   async createConSolidProject(req: Request, res: Response) {
     console.log('req.body :>> ', req.body);
-    const projectUrl = await createProject(req.auth.webId, req.body.existingPartialProjects, req.body.projectId, req.body.refRegId)
+    const projectUrl = await createProject(req.auth.webId, req.body.existingPartialProjects, req.body.projectId, req.body.refRegId, req.body.metadata)
     res.status(201).send(projectUrl)
   },
   async getConSolidProject(req: Request, res: Response) {
@@ -41,6 +41,10 @@ const ProjectController = {
     const satellite = await getSparqlSatellite(req.auth.webId)
     if (satellite) {
       const projectUrl = await getAccessPointUrl(satellite, req.params.projectId)
+      if (!projectUrl) {
+        res.status(404).send('Project not found')
+        return
+      }
       const datasetUrl = await addDatasetToProject(projectUrl, undefined, req.file)
       const datasetContent = await fetch(datasetUrl).then(res => res.text())
       res.status(201).send(datasetContent)

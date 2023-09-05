@@ -3,7 +3,9 @@ import ProjectController from '../controllers/projectController';
 import {checkOwnership} from '../middlewares';
 import multer from 'multer';
 
-const extractFile = multer();
+const extractFile = multer({
+    limits: { fieldSize: 100 * 1024 * 1024 },
+});
 
 const router = express.Router();
 

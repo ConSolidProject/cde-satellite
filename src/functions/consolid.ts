@@ -21,13 +21,13 @@ async function getSparqlSatellite(webId: string) {
     }
 }
 
-async function createProject(webId: string, existingPartialProjects: string[] = [], projectId: string = v4(), refRegId: string = v4()) {
+async function createProject(webId: string, existingPartialProjects: string[] = [], projectId: string = v4(), refRegId: string = v4(), md: any[] = []) {
     const root: string = webId.replace("profile/card#me", "")
     // 1. Create a catalog for the project
     const projectUrl = root + projectId
     const project: any = new Catalog(session, projectUrl)
 
-    const metadata = [{
+    const metadata = [...md, {
         predicate: RDF.type,
         object: CONSOLID.Project
     }, { predicate: DCTERMS.identifier, object: projectId }]
@@ -123,8 +123,7 @@ async function getConSolidProjects(satellite: string) {
     SELECT * WHERE { ?project a consolid:Project }`
     const result: Bindings[] = await queryWithComunica(myEngine, query, [{ type: "sparql", value: satellite }])
     if (result && result.length) {
-        console.log('result :>> ', result[0].get('project')!.value);
-        return result
+        return result.map((binding: any) => binding.get('project')!.value)
     } else {
         return undefined
     }
