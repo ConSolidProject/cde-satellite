@@ -4,17 +4,36 @@ import {checkOwnership} from '../middlewares';
 import multer from 'multer';
 
 const extractFile = multer({
-    limits: { fieldSize: 100 * 1024 * 1024 },
+    limits: { fieldSize: 500 * 1024 * 1024 },
 });
 
 const router = express.Router();
 
 router.get('/project/', ProjectController.getConSolidProjects);
-
-router.post('/project/create', checkOwnership, ProjectController.createConSolidProject);
 router.get('/project/:projectId', ProjectController.getConSolidProject);
+router.post('/project/create', checkOwnership, ProjectController.createConSolidProject);
+// router.patch('/project/:projectId', checkOwnership, ProjectController.updateConSolidProject);
+router.delete('/project/:projectId', checkOwnership, ProjectController.deleteConSolidProject);
+
+
+router.post('/project/:projectId/datasets', ProjectController.getConSolidDatasets);
+
 router.post('/project/:projectId/dataset', extractFile.single('file'), checkOwnership, ProjectController.addDataset);
+
+router.delete('/dataset/:id', checkOwnership, ProjectController.deleteDataset);
+
+router.delete('/distribution/:id', checkOwnership, ProjectController.deleteDistribution);
+
 router.post('/project/:projectId/aggregate', checkOwnership, ProjectController.addPartialProjects);
+router.post('/project/:projectId/reference', checkOwnership, ProjectController.createReference);
+router.get('/project/:projectId/referenceregistry', checkOwnership, ProjectController.getReferenceRegistry);
+
+
+router.get('/project/:projectId/shape', ProjectController.getShapes);
+router.post('/project/:projectId/shape', extractFile.single('file'), checkOwnership,  ProjectController.createShape);
+router.post('/project/:projectId/shapecollection', checkOwnership, ProjectController.createShapeCollection);
+
 // router.post('/project/:projectId/addStakeholder', checkOwnership, ProjectController.addStakeholders);
 
 export default router;
+ 

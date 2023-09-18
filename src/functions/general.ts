@@ -14,6 +14,7 @@ async function queryWithComunica(myEngine  : IQueryEngine, query: string, source
 async function querySparqlStore(query:string, endpoint: string) {
     let myHeaders = new Headers();
     myHeaders.append("Content-Type", "application/x-www-form-urlencoded");
+    myHeaders.append("Authorization", session.bearer);
     let urlencoded = new URLSearchParams();
     urlencoded.append("query", query)
     const requestOptions = {
@@ -22,10 +23,9 @@ async function querySparqlStore(query:string, endpoint: string) {
         body: urlencoded,
     };
 
-    const results = await session.fetch(endpoint, requestOptions).catch((error: any) => {
-        console.log('error :>> ', error);
-    });
-    if (Object.keys(results).length !== 0) return await results.json()
+    const results = await session.fetch(endpoint, requestOptions)
+    .catch((error: any) => {console.log('error :>> ', error);});
+    if (Object.keys(results).length !== 0) return await results.json() 
     else return false
 }
 

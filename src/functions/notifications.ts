@@ -2,7 +2,7 @@ import { QueryEngine } from '@comunica/query-sparql'
 import { queryWithComunica } from './general';
 import {  Bindings } from '@comunica/types';
 import { v4 } from 'uuid';
-import { getSparqlSatellite } from './consolid';
+import { getSatellites } from './consolid';
 import { FOAF } from '@inrupt/vocab-common-rdf';
 
 export async function findSolidLDNInbox(webId: string) {
@@ -168,7 +168,7 @@ export async function queryInbox(webId: string, query: string) {
     if (!inbox) {
         throw new Error('No inbox found for receiver') 
     }
-    const satellite = await getSparqlSatellite(inbox + "profile/card#me")
+    const {sparql: satellite} = await getSatellites(inbox + "profile/card#me")
     if (!satellite) {
         throw new Error('No satellite found for inbox')
     }

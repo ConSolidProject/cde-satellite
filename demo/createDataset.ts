@@ -20,7 +20,6 @@ export async function createDataset(actors) {
 
         for (const file of actor.resources) {
             const form = new FormData()
-
             form.append('file', fs.createReadStream(file))
 
             var requestOptions = {
@@ -29,7 +28,7 @@ export async function createDataset(actors) {
                 redirect: 'follow'
             };
 
-            const data = await actor.fetch(`${actor.consolid}project/${projectId}/dataset/`, requestOptions)
+            await actor.fetch(`${actor.consolid}project/${projectId}/dataset/`, requestOptions)
         }
     }
 }

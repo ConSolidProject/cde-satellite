@@ -27,10 +27,11 @@ async function generateFetch(email: string, password: string, idp: string) {
             body: 'grant_type=client_credentials&scope=webid',
         });
         const {access_token} = await r.json();
-  
+        const bearer = `Bearer ${access_token}`
+
         const defaultFetch = (input: RequestInfo, init?: RequestInit): Promise<Response> => {
           const headers: any = init?.headers || {};
-          headers['Authorization'] = `Bearer ${access_token}`;
+          headers['Authorization'] = bearer;
   
           const updatedInit: RequestInit = {
             ...init,
@@ -40,7 +41,7 @@ async function generateFetch(email: string, password: string, idp: string) {
           return fetch(input, updatedInit);
         };
   
-        return defaultFetch
+        return {authFetch: defaultFetch, bearer}
   
     } catch (error) {
         console.log('error', error)

@@ -2,7 +2,6 @@
     "owner": {
         "name": "owner-duplex",
         "password": "test123",
-        "sparqlSatellite": "https://sparql.werbrouck.me/owner/sparql",
         "consolid": "http://localhost:5001/",
         "resources": []
     },
@@ -10,13 +9,17 @@
         "name": "architect-duplex",
         "password": "test123",
         "resources": ["../resources/duplex/duplex_architecture.ttl", "../resources/duplex/duplex_architecture.gltf"],
-        "consolid": "http://localhost:5002/"
+        "consolid": "http://localhost:5002/",
+        "tags": ["duplex_architecture"],
+        "align": true
     },
     "engineer": {
         "name": "engineer-duplex",
         "password": "test123",
-        "resources": ["../resources/duplex/duplex_mep.gltf", "../resources/duplex/duplex_mep.ttl"],
-        "consolid": "http://localhost:5003/"
+        "resources": ["../resources/duplex/duplex_hvac.gltf", "../resources/duplex/duplex_hvac.ttl"],
+        "consolid": "http://localhost:5003/",
+        "tags": ["duplex_hvac"],
+        "align": true
     },
     "fm": {
         "name": "fm-duplex",

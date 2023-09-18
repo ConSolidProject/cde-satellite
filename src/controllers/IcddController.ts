@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
-import { getConSolidProjects, getSparqlSatellite } from '../functions/consolid';
+import { getConSolidProjects, getSatellites } from '../functions/consolid';
 
 const IcddController = {
   async createIcddContainer(req: Request, res: Response) {
-    const satellite = await getSparqlSatellite(req.auth.webId)
-    if (satellite === undefined) {
+    const {sparql} = await getSatellites(req.auth.webId)
+    if (sparql === undefined) {
       res.send('No SPARQL satellite found - not implemented')
     } else {
-      await getConSolidProjects(satellite)
-      res.send(satellite)
+      await getConSolidProjects(sparql)
+      res.send(sparql)
     }
   }
 };

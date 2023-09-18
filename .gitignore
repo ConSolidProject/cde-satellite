@@ -1,2 +1,6 @@
 node_modules/
 .env
+demo/resources/duplex/*
+demo/resources/igent/*
+demo/resources/shapes/*
+igent.json

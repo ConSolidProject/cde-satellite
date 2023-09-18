@@ -2,9 +2,11 @@ import fetch from 'cross-fetch'
 import { generateFetch } from '../src/auth'
 import { sparqlUpdateViaRESTAPI } from './sparqlUpdate'
 import { ACL, FOAF } from '@inrupt/vocab-common-rdf'
+import fs from 'fs';
+import crypto from 'crypto';
 
 const domain = "http://localhost:3000"
-const sparqlDomain = "http:localhost:3001"
+const sparqlDomain = "http://localhost:3001"
 
 export async function createPod(user: any, type: string = "person") {
   let name, email
@@ -54,17 +56,19 @@ export async function prepareFirstUse(actor: any) {
     await createPod(actor, "inbox")
   }
 
-  const authFetch = await generateFetch(actor.email, actor.password, actor.idp)
+  const {authFetch} = await generateFetch(actor.email, actor.password, actor.idp)
   actor.fetch = authFetch 
 
   if (!exists) {
     await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <https://w3id.org/consolid#hasSparqlSatellite> <${actor.sparqlSatellite}> }`, authFetch)
     await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <https://w3id.org/consolid#hasConSolidSatellite> <${actor.consolid}> }`, authFetch)
     await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <http://www.w3.org/ns/ldp#inbox> <${actor.inbox}> }`, authFetch)
+    await makeRSAKeys(actor)
+    await makeTokenFolder(actor)
   }
 
   if (!inboxExists) {
-    const inboxFetch = await generateFetch(actor.inboxMail, actor.password, actor.idp)
+    const {authFetch: inboxFetch} = await generateFetch(actor.inboxMail, actor.password, actor.idp)
     await sparqlUpdateViaRESTAPI(actor.inboxWebId, `INSERT DATA { <${actor.inboxWebId}> <https://w3id.org/consolid#hasSparqlSatellite> <${actor.inboxSparqlSatellite}> }`, inboxFetch)
 
     let query = `
@@ -86,8 +90,82 @@ INSERT DATA {
   }
   await waitUntilAvailable(actor.sparqlSatellite)
   await waitUntilAvailable(actor.inboxSparqlSatellite)
+  
   return actor
 }
+
+async function makeTokenFolder(actor) {
+  const tokenUrl = `${domain}/${actor.name}/tokens/.acl`
+  const data = privateAclTemplate(actor.webId, tokenUrl)
+  await actor.fetch(tokenUrl, {method: "PUT", body: data}).catch(console.log)
+}
+
+async function makeRSAKeys(actor) {
+
+
+// Generate a new RSA key pair
+const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
+  modulusLength: 4096, // Length of the key in bits
+  publicKeyEncoding: {
+    type: 'spki',
+    format: 'pem',
+  },
+  privateKeyEncoding: {
+    type: 'pkcs8',
+    format: 'pem',
+  },
+});
+
+// Save the keys to files (optional)
+const privateKeyUrl = `${domain}/${actor.name}/profile/privateKey.pem`
+const publicKeyUrl = `${domain}/${actor.name}/profile/publicKey.pem`
+const privateKeyAcl = `${domain}/${actor.name}/profile/privateKey.pem.acl`
+const publicKeyAcl = `${domain}/${actor.name}/profile/publicKey.pem.acl`
+
+await actor.fetch(privateKeyUrl, {method: "PUT", body: privateKey}).catch(console.log)
+await actor.fetch(privateKeyAcl, {method: "PUT", body: privateAclTemplate(actor.webId, privateKeyUrl), headers:{"Content-Type": "text/turtle"}}).catch(console.log)
+await actor.fetch(publicKeyUrl, {method: "PUT", body: publicKey}).catch(console.log)
+await actor.fetch(publicKeyAcl, {method: "PUT", body: publicAclTemplate(actor.webId, publicKeyUrl), headers:{"Content-Type": "text/turtle"}}).catch(console.log)
+
+await sparqlUpdateViaRESTAPI(actor.webId, `INSERT DATA { <${actor.webId}> <https://w3id.org/consolid#hasPublicKey> <${publicKeyUrl}> }`, actor.fetch)
+
+return
+}
+
+const privateAclTemplate = (owner, url) => `
+# ACL resource for the WebID profile document
+@prefix acl: <http://www.w3.org/ns/auth/acl#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+# The owner has full access to the profile
+<#owner>
+    a acl:Authorization;
+    acl:agent <${owner}>;
+    acl:accessTo <${url}>;
+    acl:mode acl:Read, acl:Write, acl:Control.
+`
+
+const publicAclTemplate = (owner, url) => `
+# ACL resource for the WebID profile document
+@prefix acl: <http://www.w3.org/ns/auth/acl#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+
+# The WebID profile is readable by the public.
+# This is required for discovery and verification,
+# e.g. when checking identity providers.
+<#public>
+    a acl:Authorization;
+    acl:agentClass foaf:Agent;
+    acl:accessTo <${url}>;
+    acl:mode acl:Read.
+
+# The owner has full access to the profile
+<#owner>
+    a acl:Authorization;
+    acl:agent <${owner}>;
+    acl:accessTo <${url}>;
+    acl:mode acl:Read, acl:Write, acl:Control.
+`
 
 // wait until a url is available via a HEAD request
 async function waitUntilAvailable(url: string) {

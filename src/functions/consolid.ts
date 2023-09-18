@@ -1,25 +1,23 @@
 import { QueryEngine } from '@comunica/query-sparql'
 import { queryWithComunica, querySparqlStore } from './general';
 import { IDataSource, IQueryEngine, Bindings } from '@comunica/types';
-import { DCAT, DCTERMS, RDF } from '@inrupt/vocab-common-rdf';
-import { Catalog, CONSOLID, getRoot } from 'consolid-daapi';
+import { DCAT, DCTERMS, RDF, RDFS } from '@inrupt/vocab-common-rdf';
+import { Catalog, getRoot } from 'consolid-daapi';
+import CONSOLID from 'consolid-vocabulary';
 import { ReferenceRegistry } from 'consolid-raapi';
 import { v4 } from 'uuid';
 
+const QueryEngineLTBQ = require('@comunica/query-sparql-link-traversal').QueryEngine;
 
-async function getSparqlSatellite(webId: string) {
-    if (webId === undefined) return undefined
-    const myEngine = new QueryEngine()
-    const query = `
-    prefix consolid: <https://w3id.org/consolid#> 
-    SELECT * WHERE { <${webId}> consolid:hasSparqlSatellite ?sat }`
-    const result: Bindings[] = await queryWithComunica(myEngine, query, [webId])
-    if (result && result.length) {
-        return result[0].get('sat')!.value
-    } else {
-        return undefined
-    }
+
+async function getSatellites(webId: string) {
+    const me = await fetch(webId, { headers: { "Accept": "application/ld+json" } }).then(res => res.json()).then(i => i.filter(i => i["@id"] === webId))
+    const sparql = me[0]["https://w3id.org/consolid#hasSparqlSatellite"][0]["@id"]
+    const consolid = me[0]["https://w3id.org/consolid#hasConSolidSatellite"] && me[0]["https://w3id.org/consolid#hasConSolidSatellite"][0]["@id"]
+    return { sparql, consolid }
 }
+
+
 
 async function createProject(webId: string, existingPartialProjects: string[] = [], projectId: string = v4(), refRegId: string = v4(), md: any[] = []) {
     const root: string = webId.replace("profile/card#me", "")
@@ -54,12 +52,21 @@ async function addDatasetToProject(projectUrl: string, datasetUrl?: string, file
         datasetUrl = root + v4()
     }
 
+    // check for dataset shapes in the project
+    
     const dataset: any = new Catalog(session, datasetUrl)
     const date = new Date()
     const dsMetadata = [{
         predicate: DCTERMS.created,
         object: date.toISOString()
     }]
+
+    if (file) {
+        dsMetadata.push({
+            predicate: RDFS.label,
+            object: file.originalname.split('.')[0]
+        })
+    }
 
     await dataset.create(true, dsMetadata)
 
@@ -86,34 +93,52 @@ function splitUrl(url: string) {
     return { root, id }
 }
 
+async function getConSolidProjectByIdLTBQ(webId, id: string) {
+    const {sparql} = await getSatellites(webId)
+    const thisProject = await getConSolidProjectById(sparql, id)
+    const query = `
+    prefix consolid: <https://w3id.org/consolid#> 
+    prefix dcat: <http://www.w3.org/ns/dcat#>
+    SELECT * WHERE { 
+        <${thisProject}> <${DCTERMS.identifier}> "${id}" ;
+            a consolid:Project ; 
+            dcat:dataset* ?dataset .
+        ?dataset a consolid:Project .}`
+
+
+    const myEngine = new QueryEngineLTBQ()
+    const bindingsStream = await myEngine.queryBindings(query, {
+        sources: [thisProject],
+        lenient: true 
+    })
+    const bindings = await bindingsStream.toArray(); 
+    const pod = process.env.WEBID!
+    const project: any = [] 
+    for (const binding of bindings) {
+        let projectUrl = binding.get('dataset')!.value 
+        let accessPoint, webId
+        if (!projectUrl.includes(pod.replace("/profile/card#me", ""))) {
+            webId = splitUrl(projectUrl).root + "profile/card#me"
+            accessPoint = false
+        } else {
+            projectUrl = thisProject
+            webId = pod
+            accessPoint = true
+        }
+        const { sparql, consolid } = await getSatellites(webId) 
+
+        project.push({ projectUrl, sparql, consolid, accessPoint, webId })
+    }
+    myEngine.invalidateHttpCache()
+    return project
+}
+
 async function getConSolidProjectById(satellite: string, id: string) {
     const query = `
     prefix consolid: <https://w3id.org/consolid#> 
-    SELECT * WHERE { ?project <${DCTERMS.identifier}> "${id}" ; a consolid:Project ; <${DCAT.dataset}> ?dataset }`
+    SELECT * WHERE { ?project <${DCTERMS.identifier}> "${id}" ; a consolid:Project .}`
     const result = await querySparqlStore(query, satellite)
-
-    if (result && result.results.bindings.length) {
-        const info = [
-            { projectUrl: result.results.bindings[0].project.value, endpoint: satellite, accessPoint: true },
-        ]
-        for (const binding of result.results.bindings) {
-            const projectUrl = binding.dataset.value
-            const pod = session.info.webId.replace('profile/card#me', '')
-            if (!projectUrl.includes(pod)) {
-                let sat = await getSparqlSatellite(splitUrl(projectUrl).root + "profile/card#me")
-                if (sat) {
-                    info.push({ projectUrl, endpoint: sat, accessPoint: false })
-                }
-            }
-        }
-        return info
-    } else {
-        return undefined
-    }
-}
-
-async function getAccessPointUrl(satellite: string, projectId: string) {
-    return await getConSolidProjectById(satellite, projectId).then(res => res?.filter(p => p.accessPoint)[0].projectUrl)
+    return result.results.bindings[0].project.value
 }
 
 async function getConSolidProjects(satellite: string) {
@@ -136,4 +161,120 @@ async function addPartialProjectsToProject(projectUrl: string, partialProjects: 
     }
 }
 
-export { getSparqlSatellite, getConSolidProjects, createProject, getConSolidProjectById, addDatasetToProject, getAccessPointUrl, addPartialProjectsToProject }
+async function getReferenceRegistry(satellite: string, projectUrl: string) {
+    const query = `
+    prefix consolid: <https://w3id.org/consolid#> 
+    prefix dcat: <http://www.w3.org/ns/dcat#> 
+    SELECT * WHERE { 
+        <${projectUrl}> dcat:dataset ?ds .
+    ?ds a consolid:ReferenceRegistry; 
+        dcat:distribution/dcat:accessURL ?dURL .
+}`
+    const result = await querySparqlStore(query, satellite)
+    if (result && result.results.bindings.length) {
+        return result.results.bindings[0].dURL.value
+    }
+    return undefined
+}
+
+async function updateResource(accessPoint, update) {
+    var requestOptions = {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/sparql-update',
+          'Authorization': session.bearer,
+        },
+        body: update,
+      };
+
+      return await fetch(accessPoint, requestOptions)
+        .then(response => response.text())
+        .then(result => console.log(result))
+        .catch(error => console.log('error', error));
+}
+
+async function deleteResource(accessPoint) {
+    var requestOptions = {
+        method: 'DELETE',
+        headers: {
+          'Authorization': session.bearer,
+        },
+      };
+  
+      return await fetch(accessPoint, requestOptions)
+        .then(response => response.text())
+        .then(result => console.log(result))
+        .catch(error => console.log('error', error));
+}
+
+async function getProjectDatasets(project, filter) {
+    const datasets = []
+    for (const partial of project) {
+        await getLocalDatasets(partial.projectUrl, partial.sparql, filter).then((data: []) => datasets.push(...data))
+    }
+    return datasets
+}
+
+async function getLocalDatasets(project, endpoint, filter) {
+    const requestOptions = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': session.bearer,
+        },
+        body: JSON.stringify({project, ...filter})
+    };
+
+    const url = endpoint.replace('sparql', 'datasets')
+    console.log('url :>> ', url);
+    const data = await fetch(url, requestOptions).then(res => res.json())
+    return data
+}
+
+async function deleteRecursively(project) {
+    // find all datasets and their distributions
+    const datasets = await getLocalDatasets(project.projectUrl, project.sparql, {})
+    for (const item of datasets) {
+        console.log('item :>> ', item);
+        await deleteResource(item.distribution)
+        await deleteResource(item.dataset)
+    }
+    await deleteResource(project.projectUrl)
+    return
+}
+
+async function getDatasetDistributions(satellite, datasetUrl) {
+    const query = `
+    prefix dcat: <http://www.w3.org/ns/dcat#>
+    SELECT * WHERE { 
+        <${datasetUrl}> dcat:distribution ?distribution .
+    ?distribution dcat:accessURL ?dURL .
+}`
+    const result = await querySparqlStore(query, satellite)
+    if (result && result.results.bindings.length) {
+        return result.results.bindings.map((binding: any) => binding.dURL.value) 
+    }
+    return []
+} 
+
+function resolveId(id, owner) {
+    return owner.replace("profile/card#me", "") + id
+}
+
+export {  
+    getSatellites, 
+    getConSolidProjects, 
+    createProject, 
+    getConSolidProjectById, 
+    addDatasetToProject, 
+    addPartialProjectsToProject, 
+    getReferenceRegistry,
+    updateResource, 
+    deleteResource, 
+    deleteRecursively, 
+    getProjectDatasets,
+    getLocalDatasets,
+    getConSolidProjectByIdLTBQ,
+    resolveId,
+    getDatasetDistributions,
+}
