@@ -1,7 +1,13 @@
 import { Request, Response } from 'express';
 import { getConSolidProjects, getSatellites } from '../functions/consolid';
 import { getAccessRights, sign } from '../functions/signature';
+import { loadTurtle, loadUrl, validate } from '../functions/validate';
 import jws from 'jws';
+import fs from "fs"
+
+const dataset = "D:/Documents/Code/PhD/infrastructure/cde-satellite/demo/resources/duplex/duplex_hvac.ttl"
+const shapeSet = "D:/Documents/Code/PhD/infrastructure/cde-satellite/demo/resources/shapes/icdd.ttl"
+const {QueryEngine} = require('@comunica/query-sparql')
 
 const VaultController = {
   async getAccessCertificate(req: Request, res: Response) {
@@ -26,10 +32,25 @@ const VaultController = {
     } else {
         return res.status(400).send("could not verify token")
     } 
-  },
+  }, 
   async validate(req: Request, res: Response) {
-    res.send("not implemented")
+    let report
+    let data, shapes
+    if (req.body.shapeUrl && req.body.dataUrl) { 
+      shapes = await loadUrl(req.body.shapeUrl)
+      data = await loadUrl(req.body.dataUrl)
+    } else if (req.body.shapeGraph && req.body.dataGraph) {
+      shapes = await loadTurtle(req.body.shapeGraph)
+      data = await loadTurtle(req.body.dataGraph)
+    } else {
+      res.send('not implemented')
+    }
+
+    report = await validate(data, shapes)
+
+    res.status(200).send(report)
   }
 }
+
 
 export default VaultController; 

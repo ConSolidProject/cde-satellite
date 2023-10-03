@@ -2,8 +2,8 @@
   "compilerOptions": {
     "target": "es6",
     "noImplicitAny": false,
-    "module": "commonjs",
-    "lib": ["es6"],
+    "module": "NodeNext",
+    "lib": ["ESNext"],
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,

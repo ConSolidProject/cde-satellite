@@ -22,5 +22,9 @@ declare global {
     }
   }
   function authFetch(input: RequestInfo, init?: RequestInit): Promise<Response>;
-  var session: any
-} 
+  var session: any;
+  var factory: any;
+  var ParserN3: any;
+  var SHACLValidator: any;
+  var got: any;
+  } 

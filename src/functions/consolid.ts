@@ -6,6 +6,7 @@ import { Catalog, getRoot } from 'consolid-daapi';
 import CONSOLID from 'consolid-vocabulary';
 import { ReferenceRegistry } from 'consolid-raapi';
 import { v4 } from 'uuid';
+import { createShapeGraph, getShapeUrls, loadTurtle, validate } from './validate';
 
 const QueryEngineLTBQ = require('@comunica/query-sparql-link-traversal').QueryEngine;
 
@@ -30,6 +31,7 @@ async function createProject(webId: string, existingPartialProjects: string[] = 
         object: CONSOLID.Project
     }, { predicate: DCTERMS.identifier, object: projectId }]
 
+
     await project.create(true, metadata)
     
     for (const existing of existingPartialProjects) {
@@ -45,9 +47,15 @@ async function createProject(webId: string, existingPartialProjects: string[] = 
     return projectUrl
 }
 
-async function addDatasetToProject(projectUrl: string, datasetUrl?: string, file?: Express.Multer.File) {
-    const root = getRoot(projectUrl)
+async function addDatasetToProject(projectData: any, datasetUrl?: string, file?: Express.Multer.File, datasetMeta?, distMeta?) {
 
+    const type = "http://www.w3.org/ns/dcat#Dataset"
+    const projectUrl = projectData.filter(i => i.accessPoint)[0].projectUrl
+
+    const shapeUrls = await getShapeUrls(projectData, type)
+    const shapeGraph = await createShapeGraph(shapeUrls)
+
+    const root = getRoot(projectUrl)
     if (!datasetUrl) {
         datasetUrl = root + v4()
     }
@@ -56,11 +64,14 @@ async function addDatasetToProject(projectUrl: string, datasetUrl?: string, file
     
     const dataset: any = new Catalog(session, datasetUrl)
     const date = new Date()
-    const dsMetadata = [{
+    const dsMetadata = [...datasetMeta, {
         predicate: DCTERMS.created,
         object: date.toISOString()
+    }, {
+        predicate: DCTERMS.identifier,
+        object: datasetUrl.split('/').pop()
     }]
-
+ 
     if (file) {
         dsMetadata.push({
             predicate: RDFS.label,
@@ -68,12 +79,40 @@ async function addDatasetToProject(projectUrl: string, datasetUrl?: string, file
         })
     }
 
+    let dataGraph =`
+    @prefix dcat: <http://www.w3.org/ns/dcat#> .
+    <> a dcat:Catalog, dcat:Dataset .
+  `;
+
+  for (const triple of dsMetadata) {
+    let o;
+    if (triple.object.startsWith("http")) {
+      o = `<${triple.object}>`;
+    } else {
+      o = `"${triple.object}"`;
+    }
+
+    dataGraph += `<> <${triple.predicate}> ${o} .`;
+  }
+
+    const shapes = await loadTurtle(shapeGraph)
+    const data = await loadTurtle(dataGraph)
+    // validate against registered requirements
+    const report = await validate(data, shapes)
+    if (!report.conforms) {
+        const violations = report.filter(i => i.severity.value === "http://www.w3.org/ns/shacl#Violation")
+        if (violations.length) {
+            return report
+        }
+    }
+
+    // add the dataset to the project
     await dataset.create(true, dsMetadata)
 
     if (file) {
         let mediaType = file.mimetype
         if (!mediaType) mediaType = "text/plain"
-        const distMetadata = [{
+        const distMetadata = [...distMeta, {
             predicate: DCAT.mediaType,
             object: `https://www.iana.org/assignments/media-types/${mediaType}`
         }]
@@ -235,12 +274,43 @@ async function deleteRecursively(project) {
     // find all datasets and their distributions
     const datasets = await getLocalDatasets(project.projectUrl, project.sparql, {})
     for (const item of datasets) {
-        console.log('item :>> ', item);
         await deleteResource(item.distribution)
         await deleteResource(item.dataset)
     }
+    const shapeCollection = await getShapeCollection(project.projectUrl, project.sparql)
+    for (const item of shapeCollection) { 
+        await deleteResource(item)
+    }
     await deleteResource(project.projectUrl)
     return
+}
+
+async function getShapeCollection(projectUrl: string, satellite: string) {
+    const query = `
+    prefix consolid: <https://w3id.org/consolid#> 
+    prefix dcat: <http://www.w3.org/ns/dcat#> 
+    SELECT * WHERE { 
+        <${projectUrl}> a consolid:Project; 
+            consolid:hasShapeCollection ?shapeCollection .
+    ?shapeCollection dcat:dataset ?shape .
+    ?shape dcat:distribution/dcat:accessURL ?dURL .
+}`
+    const result = await querySparqlStore(query, satellite)
+    const resources = new Set()
+    if (result && result.results.bindings.length) {
+        for (const r of result.results.bindings) {
+            if (r.dURL) {
+                resources.add(result.results.bindings[0].dURL.value)
+            }
+            if (r.shape) {
+                resources.add(result.results.bindings[0].shape.value)
+            }
+            if (r.shapeCollection) {
+                resources.add(result.results.bindings[0].shapeCollection.value)
+            }
+        }
+    }
+    return Array.from(resources)
 }
 
 async function getDatasetDistributions(satellite, datasetUrl) {

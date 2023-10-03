@@ -1,0 +1,8 @@
+{
+    "owner": {
+        "name": "owner-duplex",
+        "password": "test123",
+        "consolid": "http://localhost:5001/",
+        "resources": []
+    }
+}

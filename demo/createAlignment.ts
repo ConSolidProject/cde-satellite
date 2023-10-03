@@ -79,7 +79,7 @@ export async function createAlignment(actors) {
                 const ttlUrl = await findByMediaType(projectUrl, "text/turtle", actor, tag).then(i => i.filter(data => {return data.distribution.includes(actor.name)}).map(i => i.distribution)[0])
                 const gltfUrl = await findByMediaType(projectUrl, "model/gltf+json", actor, tag).then(i => i.filter(data => {return data.distribution.includes(actor.name)}).map(i => i.distribution)[0])
                  
-                const pairs = await findPairs(ttlUrl, actor).then(i => i.results.bindings.map(j => ({ttl: j.ttl.value, gltf: j.gltf.value})))
+                let pairs = await findPairs(ttlUrl, actor).then(i => i.results.bindings.map(j => ({ttl: j.ttl.value, gltf: j.gltf.value})))
                 const refRegUrl = await getReferenceRegistry(projectUrl, actor)
 
                 if (ttlUrl && gltfUrl && pairs && refRegUrl) {
@@ -92,6 +92,7 @@ export async function createAlignment(actors) {
                 let updateStringTtl = prefixes + "INSERT DATA { "
                 let updateStringGlTF = prefixes + "INSERT DATA { "
             
+                pairs = pairs.slice(0, 1)
                 for (const pair of pairs) {
                     const ttlC = refRegUrl + "#" + v4()
                     const ttlRef = refRegUrl + "#" + v4()
@@ -107,7 +108,7 @@ export async function createAlignment(actors) {
                     const gltfId = refRegUrl + "#" + v4()
             
                     updateStringTtl += `<${ttlC}> a consolid:ReferenceCollection ;
-                        consolid:aggregates <${ttlRef}>, <${gltfC}> .
+                        consolid:aggregates <${ttlRef}> ${gltfC != ttlC ? `, <${gltfC}>` : ""}  .
                         <${ttlRef}> oa:hasSelector <${ttlId}> ;
                          dct:created "${new Date()}" ;
                             oa:hasSource  <${ttlUrl}> .
@@ -115,7 +116,7 @@ export async function createAlignment(actors) {
                         `
             
                     updateStringGlTF += `<${gltfC}> a consolid:ReferenceCollection ;
-                        consolid:aggregates <${gltfRef}>, <${ttlC}> .
+                        consolid:aggregates <${gltfRef}> ${gltfC != ttlC ? `, <${ttlC}>` : ""} .
                         <${gltfRef}> oa:hasSelector <${gltfId}> ;
                          dct:created "${new Date()}" ;
                             oa:hasSource  <${gltfUrl}> .

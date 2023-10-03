@@ -115,21 +115,26 @@ const ProjectController = {
   },
 
   async addDataset(req: Request, res: Response) {
-    const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
-    if (satellite) {
-      const projectUrl = await getConSolidProjectById(satellite, req.params.projectId)
+      const projectUrl = await getConSolidProjectByIdLTBQ(req.auth.webId, req.params.projectId)
       if (!projectUrl) {
         res.status(404).send('Project not found')
         return
       }
-      const datasetUrl = await addDatasetToProject(projectUrl, undefined, req.file)
-      const datasetContent = await fetch(datasetUrl).then(res => res.text())
-      res.status(201).send(datasetContent)
-    } else {
-      res.status(404).send('No satellite found')
-    }
 
-  },
+      let content
+      if (req.file) {content = req.file}
+      else if (req.body.file) {content = req.body.file}
+      const datasetMeta = req.body.datasetMetadata || "[]"
+      const distMeta = req.body.distributionMetadata || "[]"
+
+      const datasetOrValidationReport = await addDatasetToProject(projectUrl, undefined, content, JSON.parse(datasetMeta), JSON.parse(distMeta))
+      if (typeof datasetOrValidationReport === "string") {
+        const datasetContent = await fetch(datasetOrValidationReport).then(res => res.text())
+        res.status(201).send(datasetContent) 
+      } else {
+        res.status(500).send(datasetOrValidationReport)
+      }
+  }, 
   async deleteDataset(req: Request, res: Response) {
     const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
     if (!satellite) {
@@ -244,7 +249,13 @@ const ProjectController = {
   },
 
   async createShape(req: Request, res: Response) {
-    const shapeData = req.body.file
+
+    let shapeData 
+    
+    if (req.file) {shapeData = req.file.buffer}
+    else if (req.body.file) {shapeData = req.body.file}
+    else {res.status(400).send('No shape data provided'); return}
+
     const url = req.body.shapeUrl
     const { sparql: satellite } = await getSatellites(req.auth.webId)
     if (!satellite) {

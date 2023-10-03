@@ -1,32 +1,37 @@
-import factory from 'rdf-ext'
-import fs from 'fs'
-import ParserN3 from '@rdfjs/parser-n3'
-import SHACLValidator from 'rdf-validate-shacl'
 import { spawn } from 'child_process';
 import { QueryEngine } from '@comunica/query-sparql';
 import { querySparqlStore } from './general';
 import { fetchAndMergeTurtleGraphs } from './rdfParser';
 
-function validate(rulebookPath, dataPath) {
-  return new Promise((resolve, reject) => {
-    let report = spawn("pyshacl", ["--shacl", rulebookPath ,"-m","-i","rdfs","-a","-j","-f","human",dataPath])
+const { Readable } = require('stream');
+async function validate(data, shapes) {
 
-    report.stderr.on("data", data => {
-      reject(data)
-    });
-    
-    let r = ""
-    report.stdout.on("data", data => {
-      if (data.toString().includes("usage: pyshacl.exe")) {
-        reject(data)
-      }
-      r += data
-    });
 
-    report.on("close", code => {
-      resolve(r)
-    });
+  const validator = new SHACLValidator(shapes)
+  const r = await validator.validate(data)
+  const report = r.results.map(i => {
+    return {
+      message: i.message, 
+      path: i.path,
+      severity: i.severity,
+      sourceConstraintComponent: i.sourceConstraintComponent,
+      sourceShape: i.sourceShape,
+      focusNode: i.focusNode,
+    }
   })
+  return report 
+}
+
+async function loadTurtle(data: string) {
+  // const stream = new StringReadableStream(data, {})  
+  const parser = new ParserN3({ factory })
+  return factory.dataset().import(parser.import(Readable.from(data)))
+}
+
+async function loadUrl(url) {
+  const stream = await session.fetch(url).then(i => i.body)
+  const parser = new ParserN3({ factory })
+  return factory.dataset().import(parser.import(stream)) 
 }
 
 async function getShapeUrls(project: any[], type?: string) {
@@ -87,4 +92,4 @@ async function getShapeCollection(projectUrl: string) {
 }
 
 
-export {validate, getShapeCollection, getShapeUrls, createShapeGraph}
+export {validate, loadTurtle, loadUrl, getShapeCollection, getShapeUrls, createShapeGraph}
