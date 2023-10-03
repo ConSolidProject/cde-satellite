@@ -4,14 +4,9 @@ import FileProvider from 'node-jws-file-provider';
 import fs from 'fs';
 // function to cryptographically sign a list of urls.
 
-export async function getAccessRights(actor) {
-    const me = await fetch(process.env.WEBID!, {headers: {"Accept": "application/ld+json"}}).then(res => res.json()).then(i => i.filter(i => i["@id"] === process.env.WEBID))
-    const sparqlsat = me[0]["https://w3id.org/consolid#hasSparqlSatellite"][0]["@id"]
-    const verifyUrl = me[0]["https://w3id.org/consolid#hasConSolidSatellite"][0]["@id"] + "verify"
-    const publicKey = me[0]["https://w3id.org/consolid#hasPublicKey"][0]["@id"]
-    const allowed = sparqlsat.replace("/sparql", `/allowed/read?actor=${encodeURIComponent(actor)}`)
+export async function getAccessRights(allowed) {
     const allowedData = await session.fetch(allowed).then(i => i.json())
-    return {allowedData, publicKey, verifyUrl}
+    return allowedData
 }
 
 export async function sign(data, publicKey, verifyUrl, actor) {

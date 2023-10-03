@@ -3,6 +3,7 @@ import VaultController from '../controllers/VaultController';
 const router = express.Router();
 
 router.get('/access', VaultController.getAccessCertificate);
+router.post('/sign', VaultController.sign)
 router.post('/verify', VaultController.verify)
 router.post('/validate', VaultController.validate)
 

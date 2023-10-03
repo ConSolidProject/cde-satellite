@@ -11,8 +11,15 @@ const {QueryEngine} = require('@comunica/query-sparql')
 
 const VaultController = {
   async getAccessCertificate(req: Request, res: Response) {
-    const {allowedData, publicKey, verifyUrl} = await getAccessRights(req.auth.webId)
-    const signature = await sign(allowedData, publicKey, verifyUrl, req.auth.webId)
+
+    const me = await fetch(process.env.WEBID!, {headers: {"Accept": "application/ld+json"}}).then(res => res.json()).then(i => i.filter(i => i["@id"] === process.env.WEBID))
+    const sparqlsat = me[0]["https://w3id.org/consolid#hasSparqlSatellite"][0]["@id"]
+    const verifyUrl = me[0]["https://w3id.org/consolid#hasConSolidSatellite"][0]["@id"] + "verify"
+    const publicKey = me[0]["https://w3id.org/consolid#hasPublicKey"][0]["@id"]
+    const allowed = sparqlsat.replace("/sparql", `/allowed/read?actor=${encodeURIComponent(req.auth.webId)}`)
+    
+    const message = await getAccessRights(allowed)
+    const signature = await sign({message}, publicKey, verifyUrl, req.auth.webId)
     return res.status(200).send({token: signature})
   },
   async verify(req: Request, res: Response) {
@@ -33,6 +40,16 @@ const VaultController = {
         return res.status(400).send("could not verify token")
     } 
   }, 
+  async sign(req: Request, res: Response) {
+    const message = req.body.message
+    if (!message) {return res.status(400).send("no message provided")}
+    const me = await fetch(process.env.WEBID!, {headers: {"Accept": "application/ld+json"}}).then(res => res.json()).then(i => i.filter(i => i["@id"] === process.env.WEBID))
+    const verifyUrl = me[0]["https://w3id.org/consolid#hasConSolidSatellite"][0]["@id"] + "verify"
+    const publicKey = me[0]["https://w3id.org/consolid#hasPublicKey"][0]["@id"]
+    console.log('message :>> ', message);
+    const signature = await sign({message}, publicKey, verifyUrl, req.auth.webId)
+    return res.status(200).send({token: signature})
+  },
   async validate(req: Request, res: Response) {
     let report
     let data, shapes
