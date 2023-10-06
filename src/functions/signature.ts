@@ -24,6 +24,20 @@ export async function sign(data, publicKey, verifyUrl, actor) {
     return signature
 }
 
+export async function verify(token) {
+    const decoded = jws.decode(token)
+    const payload = JSON.parse(decoded.payload)
+    const issuer = payload.issuer
+    const publicKeyUrl = payload.publicKey
+    if (publicKeyUrl.includes(issuer.replaceAll("/profile/card#me", ""))) {
+        const publicKey = await fetch(payload.publicKey).then(i => i.text())
+        const valid = jws.verify(token, decoded.header.alg, publicKey)
+        return { valid, payload }
+    } else {
+      new Error("could not verify token")
+    }
+  }
+
 // read private key from file
 
 

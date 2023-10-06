@@ -7,7 +7,7 @@ import { generateFetch } from './auth';
 const app = express();
 
 app.use(express.json({ }));
-// app.use(express.urlencoded({ extended: false, limit: "50mb" }));
+app.use(express.urlencoded({ extended: false, limit: "50mb" }));
 // app.use(express.raw({ type: "*/*", limit: "50mb" }));
 app.use(extractWebId)
 

@@ -1,11 +1,7 @@
 import express from 'express';
 import ProjectController from '../controllers/projectController';
 import {checkOwnership} from '../middlewares';
-import multer from 'multer';
-
-const extractFile = multer({
-    limits: { fieldSize: 500 * 1024 * 1024 },
-});
+import {extractFile} from '../constants'
 
 const router = express.Router();
 
@@ -30,10 +26,9 @@ router.get('/project/:projectId/referenceregistry', checkOwnership, ProjectContr
 
 
 router.get('/project/:projectId/shape', ProjectController.getShapes);
-router.post('/project/:projectId/shape', extractFile.single('file'), checkOwnership,  ProjectController.createShape);
-router.post('/project/:projectId/shapecollection', checkOwnership, ProjectController.createShapeCollection);
+router.post('/project/:projectId/shapecollection', checkOwnership, ProjectController.addShapeCollection);
 
 // router.post('/project/:projectId/addStakeholder', checkOwnership, ProjectController.addStakeholders);
 
-export default router;
- 
+export default router; 
+   

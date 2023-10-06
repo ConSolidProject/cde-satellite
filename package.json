@@ -50,6 +50,7 @@
     "rdf-validate-shacl": "^0.4.5",
     "rdflib": "^2.2.32",
     "ts-node": "^10.9.1",
+    "turtle-validator": "^1.1.1",
     "typescript": "^5.1.6"
   },
   "devDependencies": {

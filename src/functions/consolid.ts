@@ -19,7 +19,6 @@ async function getSatellites(webId: string) {
 }
 
 
-
 async function createProject(webId: string, existingPartialProjects: string[] = [], projectId: string = v4(), refRegId: string = v4(), md: any[] = []) {
     const root: string = webId.replace("profile/card#me", "")
     // 1. Create a catalog for the project
@@ -100,7 +99,7 @@ async function addDatasetToProject(projectData: any, datasetUrl?: string, file?:
     // validate against registered requirements
     const report = await validate(data, shapes)
     if (!report.conforms) {
-        const violations = report.filter(i => i.severity.value === "http://www.w3.org/ns/shacl#Violation")
+        const violations = report.report.filter(i => i.severity.value === "http://www.w3.org/ns/shacl#Violation")
         if (violations.length) {
             return report
         }

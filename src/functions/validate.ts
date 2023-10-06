@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import { QueryEngine } from '@comunica/query-sparql';
 import { querySparqlStore } from './general';
 import { fetchAndMergeTurtleGraphs } from './rdfParser';
+import validateTurtleCallback from "turtle-validator"
 
 const { Readable } = require('stream');
 async function validate(data, shapes) {
@@ -19,7 +20,16 @@ async function validate(data, shapes) {
       focusNode: i.focusNode,
     }
   })
-  return report 
+  return {conforms: r.conforms, report} 
+}
+
+function validateTurtle(turtleStream): Promise<any> {
+  return new Promise((resolve, reject) => {
+    validateTurtleCallback(turtleStream, (err, report) => {
+      if (err) {resolve(err)}
+      resolve(report)
+    })
+  })
 }
 
 async function loadTurtle(data: string) {
@@ -92,4 +102,6 @@ async function getShapeCollection(projectUrl: string) {
 }
 
 
-export {validate, loadTurtle, loadUrl, getShapeCollection, getShapeUrls, createShapeGraph}
+
+
+export {validate, loadTurtle, loadUrl, getShapeCollection, getShapeUrls, createShapeGraph, validateTurtle}

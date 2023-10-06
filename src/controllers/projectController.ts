@@ -210,7 +210,7 @@ const ProjectController = {
 
   },
 
-  async createShapeCollection(req: Request, res: Response) {
+  async addShapeCollection(req: Request, res: Response) {
     let {boundary, collectionUrl} = req.body
     const { sparql: satellite } = await getSatellites(req.auth.webId)
     if (!satellite) {
@@ -227,84 +227,85 @@ const ProjectController = {
     const datasetUrl = await project.addDataset(collectionUrl)
     await project.addMetadata([{ predicate: "https://w3id.org/consolid#hasShapeCollection", object: datasetUrl }])
 
-    if (!collectionUrl) {
-      const md = new Catalog(session, datasetUrl)
-      const metadata = [{
-        predicate: RDF.type,
-        object: "https://w3id.org/consolid#ShapeCollection"
-      }]
+    // if (!collectionUrl) {
+    //   const md = new Catalog(session, datasetUrl)
+    //   const metadata = [{
+    //     predicate: RDF.type,
+    //     object: "https://w3id.org/consolid#ShapeCollection"
+    //   }]
   
-      if (boundary) {
-        metadata.push({
-          predicate: "https://w3id.org/consolid#boundary",
-          object: boundary
-        })
-      }
+    //   if (boundary) {
+    //     metadata.push({
+    //       predicate: "https://w3id.org/consolid#boundary",
+    //       object: boundary
+    //     })
+    //   }
   
-      await md.create(true, metadata)
-    }
+    //   await md.create(true, metadata)
+    // }
 
     res.status(201).send(datasetUrl)
-
   },
 
-  async createShape(req: Request, res: Response) {
 
-    let shapeData 
+
+  // async createShape(req: Request, res: Response) {
+
+  //   let shapeData 
     
-    if (req.file) {shapeData = req.file.buffer}
-    else if (req.body.file) {shapeData = req.body.file}
-    else {res.status(400).send('No shape data provided'); return}
+  //   if (req.file) {shapeData = req.file.buffer}
+  //   else if (req.body.file) {shapeData = req.body.file}
+  //   else {res.status(400).send('No shape data provided'); return}
 
-    const url = req.body.shapeUrl
-    const { sparql: satellite } = await getSatellites(req.auth.webId)
-    if (!satellite) {
-      res.status(404).send('No satellite found')
-      return
-    }
-    const projectUrl = await getConSolidProjectById(satellite, req.params.projectId)
-    if (!projectUrl) {
-      res.status(404).send('Project not found')
-      return
-    }
-    const shapes = await getShapeCollection(projectUrl)
-    const shapeCat = new Catalog(session, shapes)
+  //   const url = req.body.shapeUrl
+  //   const { sparql: satellite } = await getSatellites(req.auth.webId)
+  //   if (!satellite) {
+  //     res.status(404).send('No satellite found')
+  //     return
+  //   }
+  //   const projectUrl = await getConSolidProjectById(satellite, req.params.projectId)
+  //   if (!projectUrl) {
+  //     res.status(404).send('Project not found')
+  //     return
+  //   }
+  //   const shapes = await getShapeCollection(projectUrl)
+  //   const shapeCat = new Catalog(session, shapes)
     
     
-    const shapeUrl = await shapeCat.addDataset(url)
+  //   const shapeUrl = await shapeCat.addDataset(url)
 
 
-    // the shape is to be created as well as referenced
-    let distributionUrl
-    if (!url) {
-      const shape = new Catalog(session, shapeUrl)
-      const metadata = [{
-        "predicate": RDF.type,
-        "object": "https://w3id.org/consolid#ValidationResource"
-      }]
-      await shape.create(true, metadata)
-      distributionUrl = await shape.addDistribution()
-      await shape.dataService.writeFileToPod(shapeData, distributionUrl, true, 'text/turtle')
+  //   // the shape is to be created as well as referenced
+  //   let distributionUrl
+  //   if (!url) {
+  //     const shape = new Catalog(session, shapeUrl)
+  //     const metadata = [{
+  //       "predicate": RDF.type,
+  //       "object": "https://w3id.org/consolid#ValidationResource"
+  //     }]
+  //     await shape.create(true, metadata)
+  //     distributionUrl = await shape.addDistribution()
+  //     await shape.dataService.writeFileToPod(shapeData, distributionUrl, true, 'text/turtle')
 
-      // the shape does already exist somewhere, and can be referenced without duplicating it on the pod
-    } else {
-      const data = await session.fetch(url, {headers: {"Accept": "application/ld+json"}}).then(res => res.json()).then(i => i.filter(i => i["@id"] === url))
-      const dist = data && data[0]["http://www.w3.org/ns/dcat#distribution"] && data[0]["http://www.w3.org/ns/dcat#distribution"][0]["@id"]
-      const distributionUrl = data && dist && dist[0]["http://www.w3.org/ns/dcat#accessURL"] && dist[0]["http://www.w3.org/ns/dcat#accessURL"][0]["@id"]
+  //     // the shape does already exist somewhere, and can be referenced without duplicating it on the pod
+  //   } else {
+  //     const data = await session.fetch(url, {headers: {"Accept": "application/ld+json"}}).then(res => res.json()).then(i => i.filter(i => i["@id"] === url))
+  //     const dist = data && data[0]["http://www.w3.org/ns/dcat#distribution"] && data[0]["http://www.w3.org/ns/dcat#distribution"][0]["@id"]
+  //     const distributionUrl = data && dist && dist[0]["http://www.w3.org/ns/dcat#accessURL"] && dist[0]["http://www.w3.org/ns/dcat#accessURL"][0]["@id"]
 
-      // if there is no distributionURL this means the passed url was not a dcat:dataset, but an external shape in itself. Therefore, there must be a local dataset that references it to include it in the consolid data patterns
-      if (!distributionUrl) {
-        const shape = new Catalog(session, shapeUrl)
-        const metadata = [{
-          "predicate": RDF.type,
-          "object": "https://w3id.org/consolid#ValidationResource"
-        }]
-        await shape.create(true, metadata)
-      }
-    }
+  //     // if there is no distributionURL this means the passed url was not a dcat:dataset, but an external shape in itself. Therefore, there must be a local dataset that references it to include it in the consolid data patterns
+  //     if (!distributionUrl) {
+  //       const shape = new Catalog(session, shapeUrl)
+  //       const metadata = [{
+  //         "predicate": RDF.type,
+  //         "object": "https://w3id.org/consolid#ValidationResource"
+  //       }]
+  //       await shape.create(true, metadata)
+  //     }
+  //   }
 
-    res.status(201).send({dataset: shapeUrl, distribution: distributionUrl})
-  },
+  //   res.status(201).send({dataset: shapeUrl, distribution: distributionUrl})
+  // },
 
   async getShapes(req: Request, res: Response) {
     const projectUrl = await getConSolidProjectByIdLTBQ(req.auth.webId, req.params.projectId)
