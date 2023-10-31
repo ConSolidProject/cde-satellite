@@ -2,7 +2,7 @@ import { prepare } from "../createProject"
 import { createAlignment } from "../createAlignment"
 import { wait } from "../createPod"
 
-const project = "duplex"
+const project = "igent"
 const actors = require(`../userConfigs/${project}.json`)
 
 const now = new Date()

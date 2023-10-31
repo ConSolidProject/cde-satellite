@@ -28,17 +28,11 @@ const queryTemplate = (projectId) => {
 
     CONSTRUCT {
         ?index a ct:ContainerDescription;
-            ct:containsDocument ?dUrl ;
+            ct:containsDocument ?dUrl .
+        ?dUrl a ct:InternalDocument
             ct:creationDate ?containerCreation ;
             ct:publishedBy <http://icddservice.org/> ; # the service
-            ct:creator ?creator ;
-            ct:versionID "1" .
-        
-        ?dist a ct:ExternalDocument ;
-            ct:creationDate ?creationDate ;
-            ct:name ?label ;
-            ct:description ?description ;
-            ct:format ?format .
+            ct:versionID "1" ;
             
     } WHERE {
     
@@ -50,8 +44,7 @@ const queryTemplate = (projectId) => {
       ?project dcterms:identifier  ?projectId;
         dcat:dataset+ ?ds .
         
-      ?ds dct:creator ?creator ;
-        dcterms:creationDate ?creationDate ;
+      ?ds dcterms:created ?creationDate ;
         rdfs:comment ?description ;
         rdfs:label ?label ;
         dcat:distribution ?dist .
@@ -62,18 +55,37 @@ const queryTemplate = (projectId) => {
     }`
 }
 
-
-async function generateIndex(projectId, tokens) {
+async function generateIndex(projectId, tokens, aggregator) {
     const query = queryTemplate(projectId)
-    console.log('query :>> ', query);
-    const aggregator = "http://localhost:6001/sparql"
     const raw = {
         query,
         tokens
     }
-    const results = await session.fetch(aggregator, {headers: {"Content-Type": "application/json"}, body: JSON.stringify(raw), method: "POST"}).catch(console.log).then(i=> i.text())  
+    const results = await session.fetch(aggregator, {headers: {"Content-Type": "application/json"}, body: JSON.stringify(raw), method: "POST"}).then(i=> i.text()).catch(console.log)  
     console.log('results :>> ', results);
     return results
+}
+
+async function generateLinks(sources, projectId, engine) {
+    const query = queryTemplate(projectId)
+    const index = await engine.queryQuads(query, { sources }).then((quadStream) => {resolveQuadStream(quadStream)})
+    return index
+}
+
+function resolveQuadStream(quadStream) {
+    return new Promise((resolve, reject) => {
+        const quads = []
+        quadStream.on('data', (quad) => {
+          writer.addQuad(quad)
+          console.log('quad :>> ', quad);
+        });
+        quadStream.on('end', (quad) => {
+          writer.end((error, result) => resolve(result));
+        });
+        quadStream.on('error', (error) => {
+            reject(error)
+        });
+    })
 }
 
 export {generateIndex} 

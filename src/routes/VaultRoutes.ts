@@ -23,4 +23,4 @@ router.post('/:requirementId/authority', checkOwnership, VaultController.addAuth
 router.post('/requirement', checkOwnership, VaultController.createRequirement)
 router.get('/pbac', VaultController.PBACInteraction)
 export default router; 
-  
+   

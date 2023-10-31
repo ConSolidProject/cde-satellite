@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "igent": "concurrently \"npm run arcadis\" \"npm run b-b\" \"npm run fm-ugent\"",
+    "igent": "concurrently \"npm run arcadis\" \"npm run b-b\" \"npm run dgfb\"",
     "arcadis": "env-cmd -f ./config/igent/arcadis.env nodemon --ignore ./demo/ --exec ts-node src/app.ts",
     "b-b": "env-cmd -f ./config/igent/b-b.env nodemon --ignore ./demo/ --exec ts-node src/app.ts",
-    "fm-ugent": "env-cmd -f ./config/igent/fm-ugent.env nodemon --ignore ./demo/ --exec ts-node src/app.ts",
+    "dgfb": "env-cmd -f ./config/igent/fm-ugent.env nodemon --ignore ./demo/ --exec ts-node src/app.ts",
     "duplex": "concurrently \"npm run owner\" \"npm run architect\" \"npm run engineer\" \"npm run fm\"",
     "owner": "env-cmd -f ./config/duplex/owner.env nodemon --ignore ./demo/ --exec ts-node src/app.ts",
     "architect": "env-cmd -f ./config/duplex/architect.env nodemon --ignore ./demo/ --exec ts-node src/app.ts",

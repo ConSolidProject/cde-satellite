@@ -7,8 +7,6 @@ import path from "path"
 import fs from "fs"
 import { prepare } from "./createProject";
 import FormData from "form-data";
-const project = "duplex"
-const actors = require(`./userConfigs/${project}.json`)
 
 export async function createDataset(actors) {
     for (const a of Object.keys(actors)) {
