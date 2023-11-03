@@ -22,7 +22,6 @@ app.listen(process.env.PORT, async () => {
 
   if (process.env.EMAIL && process.env.PASSWORD && process.env.IDP) {
     const {authFetch, bearer} = await generateFetch(process.env.EMAIL, process.env.PASSWORD, process.env.IDP)
-    globalThis.session = {info: {webId: process.env.WEBID!, isLoggedIn: true}, fetch: authFetch, bearer};
   }
    
   const {default: SHACLValidator} = await import('rdf-validate-shacl') 
