@@ -22,13 +22,13 @@ router.delete('/distribution/:id', checkOwnership, ProjectController.deleteDistr
 
 router.post('/project/:projectId/aggregate', checkOwnership, ProjectController.addPartialProjects);
 router.post('/project/:projectId/reference', checkOwnership, ProjectController.createReference);
-router.get('/project/:projectId/referenceregistry', checkOwnership, ProjectController.getReferenceRegistry);
-
+router.get('/project/:projectId/referenceregistry', ProjectController.getReferenceRegistry);
 
 router.get('/project/:projectId/shape', ProjectController.getShapes);
 router.post('/project/:projectId/shapecollection', checkOwnership, ProjectController.addShapeCollection);
 
-// router.post('/project/:projectId/addStakeholder', checkOwnership, ProjectController.addStakeholders);
+router.post('/project/:projectId/service', checkOwnership, ProjectController.addService);
+
 
 export default router; 
    

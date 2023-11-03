@@ -24,7 +24,9 @@ Explore the API documentation to learn about available endpoints, request parame
 1. Get All Projects
 
 - GET /project/
-- Description: Retrieve all ConSolid projects.
+- Description: Retrieve all projects.
+- Headers: None
+- URL Params: None
 - Success Response:
   - Code: 200 OK
   - Content: [list of projects]
@@ -36,11 +38,15 @@ Explore the API documentation to learn about available endpoints, request parame
 
 - GET /project/:projectId
 - Description: Retrieve a specific project by its ID.
+- Headers: None
 - URL Params:
   - projectId (required) - The ID of the project to retrieve.
 - Success Response:
   - Code: 200 OK
   - Content: { project details }
+- Error Response:
+  - Code: 404 Not Found
+  - Content: { error: "Project not found" }
 
 3. Create New Project
 
@@ -48,7 +54,7 @@ Explore the API documentation to learn about available endpoints, request parame
 - Description: Create a new project.
 - Headers:
   - Authorization: Bearer token (required)
-- Body (optional):
+- Body (required):
   {
     "existingPartialProjects": [],
     "projectId": "string",
@@ -58,6 +64,8 @@ Explore the API documentation to learn about available endpoints, request parame
 - Success Response:
   - Code: 201 Created
   - Content: { "projectUrl": "new project URL" }
+- Middleware:
+  - checkOwnership - Verifies if the user has the right to create a project.
 
 4. Delete Project
 
@@ -74,6 +82,8 @@ Explore the API documentation to learn about available endpoints, request parame
 - Error Response:
   - Code: 404 Not Found
   - Content: { error: "Project not found" }
+- Middleware:
+  - checkOwnership - Verifies if the user has the right to delete the project.
 
 5. Get Project Datasets
 
@@ -91,6 +101,10 @@ Explore the API documentation to learn about available endpoints, request parame
 - Success Response:
   - Code: 200 OK
   - Content: [list of datasets]
+- Error Response:
+  - Code: 404 Not Found
+  - Content: { error: "Project not found" }
+
 ...
 
 

@@ -1,7 +1,7 @@
 import { createProjectProtocol, prepare } from "../createProject"
 import { wait } from "../createPod"
 
-const project = "duplex"
+const project = "igent"
 const initiator = "owner"
 const actors = require(`../userConfigs/${project}.json`)
 

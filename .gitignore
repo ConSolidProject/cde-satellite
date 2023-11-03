@@ -1,6 +1,6 @@
 node_modules/
 .env
-demo/resources/duplex/*
-demo/resources/igent/*
-demo/resources/shapes/*
+demo/CONSOLID/resources/duplex/*
+demo/CONSOLID/resources/igent/*
+demo/CONSOLID/resources/shapes/*
 igent.json

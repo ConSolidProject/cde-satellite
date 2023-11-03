@@ -10,6 +10,26 @@ async function getRequirementsPBAC(satellite, resource, mode, actor, pbacCredent
     
     const authority = verified.payload.issuer
 
+    // const query = `PREFIX acl: <http://www.w3.org/ns/auth/acl#>
+    // prefix pbac: <https://w3id.org/pbac#>
+    // prefix dcterms: <http://purl.org/dc/terms/>
+    // SELECT * WHERE {
+    //     ?rule a pbac:DynamicRule ;
+    //         acl:mode acl:Read .
+    //     OPTIONAL {
+    //         ?rule pbac:visitorRequirement ?visitorRequirement .
+    //         ?visitorRequirement a pbac:VisitorRequirement ;
+    //             pbac:hasTrustedAuthority ?authority .
+    //         ?authority a ?authorityType ;
+    //             dcterms:identifier "${authority}".
+    //     } .
+    //     OPTIONAL {
+    //         ?rule pbac:resourceRequirement ?resourceRequirement .
+    //         ?resourceRequirement a pbac:ResourceRequirement ;
+    //             pbac:askQuery ?askQuery .
+    //     } .
+    // }`
+
     const query = `PREFIX acl: <http://www.w3.org/ns/auth/acl#>
     prefix pbac: <https://w3id.org/pbac#>
     prefix dcterms: <http://purl.org/dc/terms/>

@@ -1,6 +1,6 @@
 import { prepareFirstUse, wait } from "./createPod";
-import { inviteToProject } from '../src/functions/notifications'
-import { queryWithComunica } from "../src/functions/general";
+import { inviteToProject } from '../../src/functions/notifications'
+import { queryWithComunica } from "../../src/functions/general";
 import { QueryEngine } from "@comunica/query-sparql";
 import { v4 } from 'uuid'
 import path from "path"
@@ -20,22 +20,18 @@ export async function prepare(actors) {
     await wait(4000)
     return actors
 }
-
+ 
 export async function createProjectProtocol(actors, project, initiator) {
 
     // the owner creates a project in their Pod
     const projectUrl = await createProject(actors[initiator], project, [])
-    console.log("local project created");
 
     // the architect notifies the others of the project by sending them a message
     for (const actor of Object.keys(actors)) {
         if (actor !== initiator) {
             await sendMessage(actors[initiator], actors[actor], projectUrl)
-            console.log("message sent to other actors");
         }
     }
-
-    // const projectUrl = "https://pod.werbrouck.me/owner-duplex/34e21bf5-1d7f-4d35-891b-21bdcdb7bfdd"
 
     // the others check their inbox and see the message
     for (const actor of Object.keys(actors)) {
@@ -76,7 +72,6 @@ export async function createProjectProtocol(actors, project, initiator) {
 
                 // create the project
                 const localUrl = await createProject(actors[actor], project, [data[0]])
-                console.log("project created for actor", actors[actor]);
                 // the others notify the owner of their project creation
                 await informOfAggregation(actors[actor], actors[initiator], localUrl, data[0])
             }
@@ -102,7 +97,6 @@ export async function createProjectProtocol(actors, project, initiator) {
         const aggregatingProject = parts[0].slice(1, -1)
         const originalProject = parts[2].split("/")[parts[2].split("/").length -1].replace('>', '')
         await addStakeholder(actors[initiator], originalProject, aggregatingProject)
-        console.log("stakeholder added to project");
     }
 }
 
@@ -110,7 +104,7 @@ async function addStakeholder(actor: any, projectId: string, aggregatingProject:
     const requestOptions = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId: projectId, partialProjects: [aggregatingProject] })
+        body: JSON.stringify({ partialProjects: [aggregatingProject] })
     };
     const response = await actor.fetch(`${actor.consolid}project/${projectId}/aggregate`, requestOptions);
 }
@@ -154,8 +148,11 @@ async function createProject(actor: any, projectName: string = v4(), partials: a
     const projectId = projectUrl.split("/").pop()
 
     // create a shape collection for the project
-    const shapeCollectionUrl = await actor.fetch(actor.consolid+`project/${projectId}/shapecollection`, {method: 'POST'})
-    console.log('shapeCollectionUrl :>> ', shapeCollectionUrl);
+    const shapeCollectionUrl = await actor.fetch(actor.consolid + 'shapecollection', { method: 'POST' }).then(i => i.text())
+    const shapeCollectionId = shapeCollectionUrl.split("/").pop()
+    var urlencoded = new URLSearchParams();
+    urlencoded.append("collectionUrl", shapeCollectionUrl);
+    await actor.fetch(actor.consolid+`project/${projectId}/shapecollection`, {method: 'POST', "Content-Type": "application/x-www-form-urlencoded", body: urlencoded})
     for (const shape of shapes) {
         const form = new FormData()
         const content = fs.readFileSync(shape)
@@ -164,14 +161,12 @@ async function createProject(actor: any, projectName: string = v4(), partials: a
         var requestOptions = {
             method: 'POST',
             body: form,
-            headers: {...form.getHeaders()},
+            headers: {...form.getHeaders(), "Content-Type": "text/turtle"},
             redirect: 'follow'
         };
 
-        const url = `${actor.consolid}project/${projectId}/shape`
-        console.log('url :>> ', url);
+        const url = `${actor.consolid}${shapeCollectionId}/shape`
         const s = await actor.fetch(url, requestOptions)
-        console.log(s);
     }
     return projectUrl
 }

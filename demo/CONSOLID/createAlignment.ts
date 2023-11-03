@@ -58,12 +58,12 @@ async function findByMediaType(projectUrl, mediaType, actor, tag) {
 
 async function findPairs(ttlUrl, actor) {
     const q = `
-    PREFIX props: <https://w3id.org/props#> 
+    PREFIX props: <https://w3id.org/props#>
     PREFIX schema: <http://schema.org/>
     SELECT ?ttl ?gltf 
     FROM <${ttlUrl}>
     WHERE {
-        ?ttl props:globalIdIfcRoot/schema:value ?gltf
+        ?ttl props:globalIdIfcRoot_attribute_simple ?gltf
     }`
 
     const data = await querySparqlStore(q, actor.sparqlSatellite, actor.fetch)
@@ -76,6 +76,7 @@ export async function createAlignment(actors) {
         if (actor.align) {
             const projectUrl = await getProject(actor).then(i => i[0])
             for (const tag of actor.tags) {
+                console.log('tag :>> ', tag);
                 const ttlUrl = await findByMediaType(projectUrl, "text/turtle", actor, tag).then(i => i.filter(data => {return data.distribution.includes(actor.name)}).map(i => i.distribution)[0])
                 const gltfUrl = await findByMediaType(projectUrl, "model/gltf+json", actor, tag).then(i => i.filter(data => {return data.distribution.includes(actor.name)}).map(i => i.distribution)[0])
                  
@@ -92,7 +93,6 @@ export async function createAlignment(actors) {
                 let updateStringTtl = prefixes + "INSERT DATA { "
                 let updateStringGlTF = prefixes + "INSERT DATA { "
             
-                pairs = pairs.slice(0, 1)
                 for (const pair of pairs) {
                     const ttlC = refRegUrl + "#" + v4()
                     const ttlRef = refRegUrl + "#" + v4()

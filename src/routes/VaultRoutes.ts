@@ -15,12 +15,14 @@ router.post('/:shapeCollectionId/shape', extractFile.single('file'), checkOwners
 router.post('/shape', extractFile.single('file'), checkOwnership,  VaultController.createShape);
 
 router.post('/rulecollection', checkOwnership, VaultController.createRuleCollection)
-router.post('/:ruleCollectionId/rule', checkOwnership, VaultController.createAccessRule)
 router.post('/rule', checkOwnership, VaultController.createAccessRule)
+
+router.post('/:ruleCollectionId/rule', checkOwnership, VaultController.addAccessRuleToCollection)
 router.post('/authority', checkOwnership, VaultController.createAuthority)
 router.post('/:requirementId/authority', checkOwnership, VaultController.addAuthorityToRequirement)
 
 router.post('/requirement', checkOwnership, VaultController.createRequirement)
-router.get('/pbac', VaultController.PBACInteraction)
+
+router.get('/pbac', VaultController.PBACInteraction) // get resource with PBAC
 export default router; 
-  
+   

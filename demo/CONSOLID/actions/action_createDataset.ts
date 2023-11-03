@@ -1,7 +1,7 @@
 import { prepare } from "../createProject"
 import {createDataset} from "../createDataset"
 
-const project = "duplex"
+const project = "igent"
 const actors = require(`../userConfigs/${project}.json`)
 
 const now = new Date()
