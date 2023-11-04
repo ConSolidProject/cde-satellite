@@ -28,6 +28,13 @@ const ReferenceController = {
         const id = req.body.identifier
         const source = req.body.source
 
+        let concept
+        if (req.body.referenceCollection) {
+          concept = req.body.referenceCollection
+        } else {
+          concept = referenceRegistry + v4()
+        }
+
         const query = `
         PREFIX consolid: <https://w3id.org/consolid#>
         PREFIX oa: <http://www.w3.org/ns/oa#>
@@ -35,7 +42,8 @@ const ReferenceController = {
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 
         INSERT DATA {
-            <${referenceCollection}> consolid:aggregates <${reference}> .
+            <${concept}> a consolid:ReferenceCollection ;
+            consolid:aggregates <${reference}> .
             <${reference}> a consolid:Reference ;
                 oa:hasSource <${source}> ;
                 oa:hasSelector <${selector}> .
