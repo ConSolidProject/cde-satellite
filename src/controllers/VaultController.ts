@@ -2,8 +2,6 @@ import { Request, Response } from 'express';
 import { getConSolidProjects, getSatellites } from '../functions/consolid';
 import { getAccessRights, sign, verify } from '../functions/signature';
 import { loadTurtle, loadUrl, validate, validateTurtle } from '../functions/validate';
-import jws from 'jws';
-import fs from "fs"
 import { Catalog } from 'consolid-daapi';
 import { RDF } from '@inrupt/vocab-common-rdf';
 import { v4 } from "uuid"
@@ -13,6 +11,12 @@ import { getRequirementsPBAC } from '../functions/pbac';
 const { Readable } = require('stream');
 
 const VaultController = {
+  async addAccessRuleToCollection(req: Request, res: Response) {
+  },
+  async addVisitorRequirement(req: Request, res: Response) {
+  },
+  async addResourceRequirement(req: Request, res: Response) {
+  },
   async PBACInteraction(req: Request, res: Response) {
     if (!req.query.resource) { return res.status(400).send("no resource provided") }
     if (typeof req.query.resource !== "string") { return res.status(400).send("invalid resource provided") }
@@ -39,7 +43,13 @@ const VaultController = {
         break;
     }
     let pbacCredentials = req.headers.pbac
-    const response = await getRequirementsPBAC(satellite.sparql, resource, mode, req.auth.webId, pbacCredentials)
+    let response
+    try {
+     response = await getRequirementsPBAC(satellite.sparql, resource, mode, req.auth.webId, pbacCredentials)
+    } catch (error) {
+      res.send(error)
+      return
+    }
 
     const contentType = response.headers.get('content-type'); // Get the content type from response headers
     const content = await response.text(); // Fetch and store the response body as a Buffer
@@ -70,7 +80,10 @@ const VaultController = {
     return res.status(200).send(collectionUrl)
   },
   async createShape(req: Request, res: Response) {
-    if (!req.body.shape) { return res.status(400).send("no rule provided") }
+    let content
+    if (req.file) {content = req.file}
+    else if (req.body.file) {content = req.body.file}
+    else { return res.status(400).send("no shape provided") }
 
     let shapeDatasetUrl
     if (req.params.shapeCollectionId) {
@@ -90,13 +103,13 @@ const VaultController = {
     await shapeDataset.create(true, md)
 
     let distributionUrl
-    if (req.body.shape.startsWith("http")) {
-      distributionUrl = await shapeDataset.addDistribution(req.body.shape)
+    if (content.buffer.toString('utf-8').startsWith("http")) {
+      distributionUrl = await shapeDataset.addDistribution(content)
     } else {
-      const report = await validateTurtle(Readable.from(req.body.shape))
+      const report = await validateTurtle(Readable.from(content.buffer))
       if (report.errors.length) { return res.status(400).send(report) }
       distributionUrl = await shapeDataset.addDistribution()
-      await shapeDataset.dataService.writeFileToPod(Buffer.from(JSON.stringify(req.body.shape)), distributionUrl, true, "application/json")
+      await shapeDataset.dataService.writeFileToPod(content.buffer, distributionUrl, true, "application/json")
     }
 
     return res.status(200).send(distributionUrl)

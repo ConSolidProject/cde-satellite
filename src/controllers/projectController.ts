@@ -20,6 +20,7 @@ import { v4 } from 'uuid';
 import { getShapeCollection, getShapeUrls, createShapeGraph } from '../functions/validate';
 import { Catalog } from 'consolid-daapi';
 import { RDF } from '@inrupt/vocab-common-rdf';
+import { sparqlUpdateViaRESTAPI } from '../functions/general';
 
 const ProjectController = {
   async createConSolidProject(req: Request, res: Response) {
@@ -27,23 +28,48 @@ const ProjectController = {
     res.status(201).send(projectUrl)
   },
   async getConSolidProject(req: Request, res: Response) {
-    const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
-    if (satellite) {
       const info = await getConSolidProjectByIdLTBQ(req.auth.webId, req.params.projectId)
-      console.log('info :>> ', info);
       res.status(200).send(info)
-    } else {
-      res.status(404).send('No satellite found')
-    }
   },
   async getConSolidProjects(req: Request, res: Response) {
-    const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
+    const { sparql: satellite, consolid } = await getSatellites(process.env.WEBID!)
     if (satellite) {
       const projects = await getConSolidProjects(satellite)
       res.status(200).send(projects)
     } else {
       res.status(404).send('No satellite found')
     }
+  },
+  async addService(req: Request, res: Response) {
+    const { sparql: satellite, consolid } = await getSatellites(process.env.WEBID!)
+    const projectUrl = await getConSolidProjectById(satellite, req.params.projectId)
+    if (!projectUrl) {
+      res.status(404).send('Project not found')
+      return
+    }
+    const {serviceURL} = req.body
+    if (!serviceURL) {
+      res.status(400).send('No serviceURL provided')
+      return
+    }
+
+    const service = req.auth.webId.replace('profile/card#me', v4())
+    const query = `
+PREFIX dcat: <http://www.w3.org/ns/dcat#>
+PREFIX dcterms: <http://purl.org/dc/terms/>
+INSERT DATA {
+  <${projectUrl}> dcat:service <${service}> .
+  <${service}> a dcat:DataService ;
+    dcterms:conformsTo <https://www.w3.org/TR/sparql11-query/> ;
+    dcat:endpointURL <${serviceURL}> .
+}`
+
+    console.log('query :>> ', query);
+    console.log('projectUrl :>> ', projectUrl);
+    await sparqlUpdateViaRESTAPI(projectUrl, query, session.fetch)
+
+    res.status(201).send()
+
   },
   // async updateConSolidProject(req: Request, res: Response) {
   //   const satellite = await getSparqlSatellite(req.auth.webId)
@@ -63,7 +89,7 @@ const ProjectController = {
   //   }
   // },
   async deleteConSolidProject(req: Request, res: Response) {
-    const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
+    const { sparql: satellite, consolid } = await getSatellites(process.env.WEBID!)
     if (!satellite) {
       res.status(404).send('No satellite found')
       return
@@ -86,7 +112,7 @@ const ProjectController = {
   },
 
   async addPartialProjects(req: Request, res: Response) {
-    const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
+    const { sparql: satellite, consolid } = await getSatellites(process.env.WEBID!)
     if (satellite) {
       const projectUrl = await getConSolidProjectById(satellite, req.params.projectId)
       await addPartialProjectsToProject(projectUrl, req.body.partialProjects)
@@ -97,7 +123,7 @@ const ProjectController = {
   },
 
   async getConSolidDatasets(req: Request, res: Response) {
-    const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
+    const { sparql: satellite, consolid } = await getSatellites(process.env.WEBID!)
     if (!satellite) {
       res.status(404).send('No satellite found')
       return
@@ -136,7 +162,7 @@ const ProjectController = {
       }
   }, 
   async deleteDataset(req: Request, res: Response) {
-    const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
+    const { sparql: satellite, consolid } = await getSatellites(process.env.WEBID!)
     if (!satellite) {
       res.status(404).send('No satellite found')
       return
@@ -152,7 +178,7 @@ const ProjectController = {
   },
 
   async deleteDistribution(req: Request, res: Response) {
-    const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
+    const { sparql: satellite, consolid } = await getSatellites(process.env.WEBID!)
     if (!satellite) {
       res.status(404).send('No satellite found')
       return
@@ -163,12 +189,12 @@ const ProjectController = {
   },
 
   async getReferenceRegistry(req: Request, res: Response) {
-    const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
+    const { sparql: satellite } = await getSatellites(process.env.WEBID!)
     if (!satellite) {
       res.status(404).send('No satellite found')
       return
     }
-    const projectUrl = resolveId(req.params.projectId, req.auth.webId)
+    const projectUrl = await getConSolidProjectById(satellite, req.params.projectId)
     const refReg = await getReferenceRegistry(satellite, projectUrl)
     if (!refReg) {
       res.status(404).send('Reference registry not found')
@@ -176,10 +202,8 @@ const ProjectController = {
     }
     res.status(200).send(refReg)
   },
-
-
   async createReference(req: Request, res: Response) {
-    const { sparql: satellite, consolid } = await getSatellites(req.auth.webId)
+    const { sparql: satellite, consolid } = await getSatellites(process.env.WEBID!)
     if (!satellite) {
       res.status(404).send('No satellite found')
       return
@@ -209,10 +233,9 @@ const ProjectController = {
     res.status(200).send(concept)
 
   },
-
   async addShapeCollection(req: Request, res: Response) {
     let {boundary, collectionUrl} = req.body
-    const { sparql: satellite } = await getSatellites(req.auth.webId)
+    const { sparql: satellite } = await getSatellites(process.env.WEBID!)
     if (!satellite) {
       res.status(404).send('No satellite found')
       return
@@ -244,7 +267,7 @@ const ProjectController = {
     //   await md.create(true, metadata)
     // }
 
-    res.status(201).send(datasetUrl)
+    res.status(201).send()
   },
 
 
@@ -258,7 +281,7 @@ const ProjectController = {
   //   else {res.status(400).send('No shape data provided'); return}
 
   //   const url = req.body.shapeUrl
-  //   const { sparql: satellite } = await getSatellites(req.auth.webId)
+  //   const { sparql: satellite } = await getSatellites(process.env.WEBID!)
   //   if (!satellite) {
   //     res.status(404).send('No satellite found')
   //     return

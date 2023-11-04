@@ -1,5 +1,5 @@
 import fetch from 'cross-fetch'
-import { generateFetch } from '../src/auth'
+import { generateFetch } from '../../src/auth'
 import { sparqlUpdateViaRESTAPI } from './sparqlUpdate'
 import { ACL, FOAF } from '@inrupt/vocab-common-rdf'
 import fs from 'fs';

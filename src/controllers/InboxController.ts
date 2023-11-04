@@ -76,8 +76,4 @@ const InboxController = {
 
 };
 
-
-
-
-
 export default InboxController;

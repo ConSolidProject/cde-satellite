@@ -17,7 +17,19 @@ async function getSatellites(webId: string) {
     const consolid = me[0]["https://w3id.org/consolid#hasConSolidSatellite"] && me[0]["https://w3id.org/consolid#hasConSolidSatellite"][0]["@id"]
     return { sparql, consolid }
 }
-
+async function getService(projectUrl, standard) {
+    const engine = new QueryEngine()
+    const query = `PREFIX dcat: <http://www.w3.org/ns/dcat#>
+    SELECT ?endpoint WHERE {
+        <${projectUrl}> dcat:service ?service .
+        ?service dcat:endpointURL ?endpoint ;
+            dcterms:conformsTo <${standard}> .
+    }`
+    const bindings = await engine.queryBindings(query, { sources: [projectUrl] }).then((result) => result.toArray())
+    if (bindings.length > 0) {
+        return bindings[0].get('endpoint')!.value
+    }
+}
 
 async function createProject(webId: string, existingPartialProjects: string[] = [], projectId: string = v4(), refRegId: string = v4(), md: any[] = []) {
     const root: string = webId.replace("profile/card#me", "")
@@ -164,7 +176,6 @@ async function getConSolidProjectByIdLTBQ(webId, id: string) {
             accessPoint = true
         }
         const { sparql, consolid } = await getSatellites(webId) 
-
         project.push({ projectUrl, sparql, consolid, accessPoint, webId })
     }
     myEngine.invalidateHttpCache()
@@ -194,6 +205,8 @@ async function getConSolidProjects(satellite: string) {
 
 async function addPartialProjectsToProject(projectUrl: string, partialProjects: string[]) {
     const project: any = new Catalog(session, projectUrl)
+    console.log('projectUrl :>> ', projectUrl);
+    console.log('partialProjects :>> ', partialProjects);
     for (const partialProject of partialProjects) {
         await project.addDataset(partialProject)
     }
@@ -346,4 +359,5 @@ export {
     getConSolidProjectByIdLTBQ,
     resolveId,
     getDatasetDistributions,
+    getService
 }
