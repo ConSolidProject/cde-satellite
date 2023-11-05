@@ -2,6 +2,7 @@ import fetch from 'cross-fetch'
 import { generateFetch } from '../../src/auth'
 import { sparqlUpdateViaRESTAPI } from './sparqlUpdate'
 import { ACL, FOAF } from '@inrupt/vocab-common-rdf'
+import { generateSession } from 'consolid-daapi'
 import fs from 'fs';
 import crypto from 'crypto';
 
@@ -45,6 +46,7 @@ export async function prepareFirstUse(actor: any) {
   actor.inboxWebId = actor.inbox + 'profile/card#me'
   actor.inboxSparqlSatellite = `${sparqlDomain}/inbox_${actor.name}/sparql`
   actor.idp = domain
+  actor.session = await generateSession(actor, actor.webId)
 
   const exists = await fetch(actor.webId, { method: 'HEAD' }).then(res => res.ok)
   if (!exists) {

@@ -56,6 +56,7 @@ async function findByMediaType(projectUrl, mediaType, actor, tag) {
     return data
 }
 
+
 async function findPairs(ttlUrl, actor) {
     const q = `
     PREFIX props: <https://w3id.org/props#>
@@ -63,7 +64,7 @@ async function findPairs(ttlUrl, actor) {
     SELECT ?ttl ?gltf 
     FROM <${ttlUrl}>
     WHERE {
-        ?ttl props:globalIdIfcRoot_attribute_simple ?gltf
+        ?ttl props:globalIdIfcRoot/schema:value ?gltf
     }`
 
     const data = await querySparqlStore(q, actor.sparqlSatellite, actor.fetch)

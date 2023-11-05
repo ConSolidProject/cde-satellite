@@ -228,7 +228,7 @@ INSERT DATA {
       concept = await refReg.createConcept()
     }
 
-    const reference = await refReg.createReference(concept, refRegUrl + "#" + v4(), req.body.source, req.body.identifier, req.body.conformance)
+    const reference = await refReg.createReference(concept, refRegUrl + "#" + v4(), req.body.source, req.body.identifier, req.body.conformsTo)
 
     res.status(200).send(concept)
 

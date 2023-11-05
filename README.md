@@ -477,7 +477,12 @@ An example ResourceRequirement is:
       source # the source (distribution) of the identifier
     }
     ```
-  - **Success Response**: 201 Created - Content: `Reference URL`
+  - **Success Response**: 201 Created - Content:
+    {
+      referenceCollection, # the URI of the associated Reference Collection
+      reference, # the URI of the Reference
+      selector, # the URI of the Selector
+    }
 
 3. **Create Alias**
   - **Method**: POST

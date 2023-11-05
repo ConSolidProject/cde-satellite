@@ -18,8 +18,8 @@ const ReferenceController = {
         res.status(200).send(rc)
     },
     async createReference(req: Request, res: Response) {
-        const referenceCollection = req.body.referenceCollection
-        const referenceRegistry = referenceCollection.split('#')[0]
+        const root = req.auth.webId.replace('profile/card#me', '')
+        const referenceRegistry = root + req.params.registryId
         const referenceId = v4()
         const reference = referenceRegistry + '/' + referenceId
         const selectorId = v4()
@@ -32,7 +32,7 @@ const ReferenceController = {
         if (req.body.referenceCollection) {
           concept = req.body.referenceCollection
         } else {
-          concept = referenceRegistry + v4()
+          concept = referenceRegistry + '/' + v4()
         }
 
         const query = `
@@ -60,11 +60,16 @@ const ReferenceController = {
             }
         })
 
-        res.status(201).send(reference)
+        res.status(201).send({referenceCollection: concept, reference, selector, identifier: id})
     },
     async createAlias(req: Request, res: Response) {
         const referenceCollection = req.body.referenceCollection
-        const referenceRegistry = referenceCollection.split('#')[0]
+        let referenceRegistry
+        if (referenceCollection.split('#').length > 1) {
+            referenceRegistry = referenceCollection.split('#')[0]
+        } else {
+            referenceRegistry = referenceCollection.substring(0, referenceCollection.lastIndexOf('/'));
+        }
         const alias = req.body.alias
 
         const query = `
@@ -73,6 +78,8 @@ const ReferenceController = {
             <${referenceCollection}> consolid:aggregates <${alias}> .
         }`
 
+        console.log('query :>> ', query);
+        console.log('referenceRegistry :>> ', referenceRegistry);
         await session.fetch(referenceRegistry, {
             method: 'PATCH',
             body: query, 

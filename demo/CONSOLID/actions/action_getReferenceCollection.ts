@@ -6,9 +6,6 @@ const initiator = "owner"
 const actors = require(`../userConfigs/${project}.json`)
 const crypto = require('crypto')
 
-const source = "http://localhost:3000/fm-ugent/04791e8c-c20d-48fe-9438-86d17baf53db"
-const value = "http://localhost:3000/fm-ugent/04791e8c-c20d-48fe-9438-86d17baf53db/pct:20,10,25,55/max/0/default"
-const projectId = "5eaa1fc4-daa4-41f8-a799-bad53fe76564"
 const consolidSatellite = "http://localhost:5007"
 
 const token = "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6ImF0K2p3dCIsImtpZCI6Ijh3aEVBZC04R0pGbDdNcnZWdTZOYTIzMUpWNmFYRDFhX2xiV0hHUHV1ZHcifQ.eyJ3ZWJpZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzAwMC9mbS11Z2VudC9wcm9maWxlL2NhcmQjbWUiLCJqdGkiOiJkeUFhR2dSZURVNy1hbEJ5WjhZN2IiLCJzdWIiOiJkZW1vXzI5NDUxNWM5LTY4NGMtNDUwZS04MDY1LWYwZTFmMWEwMDBkMSIsImlhdCI6MTY5NzcxOTQxNiwiZXhwIjoxNjk4MzE5NDE2LCJzY29wZSI6IndlYmlkIiwiY2xpZW50X2lkIjoiZGVtb18yOTQ1MTVjOS02ODRjLTQ1MGUtODA2NS1mMGUxZjFhMDAwZDEiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjMwMDAvIiwiYXVkIjoic29saWQifQ.aQEfaDaBuAxPpTm501T3_tGgad89MAuVlnXq2RcdUuZ4OmRxVDm2dqkE38J0oEuHpOz3qPF3L-xS03nTDSMpiA"
@@ -42,7 +39,7 @@ async function cacher(referenceRegistries) {
     return referenceRegistries
 }
 
-async function findReference(registries) {
+async function findReference(registries,source,value) {
     const query = `
     PREFIX consolid: <https://w3id.org/consolid#>
     PREFIX oa: <http://www.w3.org/ns/oa#>
