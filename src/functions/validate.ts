@@ -6,8 +6,6 @@ import validateTurtleCallback from "turtle-validator"
 
 const { Readable } = require('stream');
 async function validate(data, shapes) {
-
-
   const validator = new SHACLValidator(shapes)
   const r = await validator.validate(data)
   const report = r.results.map(i => {

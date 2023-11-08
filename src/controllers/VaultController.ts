@@ -27,7 +27,7 @@ const VaultController = {
 
     let mode 
     switch(req.method) {
-      case "GET":
+      case "GET": 
         mode = "http://www.w3.org/ns/auth/acl#Read"
         break;
       case "POST":
@@ -43,25 +43,30 @@ const VaultController = {
         break;
     }
     let pbacCredentials = req.headers.pbac
-    let response
+    let isAllowed
     try {
-     response = await getRequirementsPBAC(satellite.sparql, resource, mode, req.auth.webId, pbacCredentials)
+     isAllowed = await getRequirementsPBAC(satellite.sparql, resource, mode, req.auth.webId, pbacCredentials)
     } catch (error) {
       res.send(error)
       return
     }
 
-    const contentType = response.headers.get('content-type'); // Get the content type from response headers
-    const content = await response.text(); // Fetch and store the response body as a Buffer
+    if (isAllowed) {
+      const data = await session.fetch(resource)
+      const contentType = data.headers.get('content-type'); // Get the content type from response headers
+      const content = await data.text(); // Fetch and store the response body as a Buffer
+  
+      if (contentType) {
+        res.setHeader('Content-Type', contentType); // Set content type based on the response
+      } else {
+        // Set a default content type if the server didn't provide one
+        res.setHeader('Content-Type', 'application/octet-stream');
+      } 
+      res.status(200).send(content); // Send the Buffer as the response body
 
-    if (contentType) {
-      res.setHeader('Content-Type', contentType); // Set content type based on the response
     } else {
-      // Set a default content type if the server didn't provide one
-      res.setHeader('Content-Type', 'application/octet-stream');
+      res.status(403).send("Access denied")
     }
-    
-    res.status(200).send(content); // Send the Buffer as the response body
   },
   async createShapeCollection(req: Request, res: Response) {
     const collectionUrl = req.auth.webId.replace("profile/card#me", v4())
@@ -174,12 +179,14 @@ const VaultController = {
   },
   async sign(req: Request, res: Response) {
     const message = req.body.message
+    const about = req.body.about
     if (!message) { return res.status(400).send("no message provided") }
     const me = await fetch(process.env.WEBID!, { headers: { "Accept": "application/ld+json" } }).then(res => res.json()).then(i => i.filter(i => i["@id"] === process.env.WEBID))
     const verifyUrl = me[0]["https://w3id.org/consolid#hasConSolidSatellite"][0]["@id"] + "verify"
     const publicKey = me[0]["https://w3id.org/consolid#hasPublicKey"][0]["@id"]
-    console.log('message :>> ', message);
-    const signature = await sign({ message }, publicKey, verifyUrl, req.auth.webId)
+
+
+    const signature = await sign({ message }, publicKey, verifyUrl, about)
     return res.status(200).send({ token: signature })
   },
   async validate(req: Request, res: Response) {
@@ -215,7 +222,7 @@ const VaultController = {
       @prefix pbac: <https://w3id.org/pbac#> .   
       @prefix dcterms: <http://purl.org/dc/terms/> .
 
-      <${distributionUrl}> a pbac:TrustedAuthority ;
+      <${distributionUrl}> a pbac:TrustedAuthority, pbac:ExplicitAuthority ;
         dcterms:identifier "${webId}" . `
 
     } else if (req.body.type === "https://w3id.org/consolid#ImplicitAuthority") {
@@ -223,7 +230,7 @@ const VaultController = {
       const issuerRequirement = req.body.issuerRequirement
       content = `
       @prefix pbac: <https://w3id.org/pbac#> .
-      <${distributionUrl}> a pbac:TrustedAuthority ;
+      <${distributionUrl}> a pbac:TrustedAuthority, pbac:ImplicitAuthority ;
         pbac:issuerRequirement <${issuerRequirement}> .`
 
     } else {

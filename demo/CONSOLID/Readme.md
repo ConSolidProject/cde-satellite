@@ -68,5 +68,4 @@ This script will align the resources associated with each user account in the us
 
 ### Add Damage Record to the project
 In this script, the FM will create a damage record in their vault. This damage record will be linked as a representation of a new Reference Collection. A pixel zone in image `crack.jpg`, which was uploaded in the previous step, will also be indicated as a representation of this Reference Collection. This script mimicks a selection of the damaged element via a 3D interface, which displays the architectural model. This allows the Reference Collection to immediately aggregate the Reference Collection of which this 3D element is a representation, as a remote alias on the architect's vault.
-
 - `ts-node .\action_addDamageRecord.ts --userConfig "duplex"`

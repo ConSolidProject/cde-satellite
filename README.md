@@ -482,6 +482,7 @@ An example ResourceRequirement is:
       referenceCollection, # the URI of the associated Reference Collection
       reference, # the URI of the Reference
       selector, # the URI of the Selector
+      identifier # the identifier
     }
 
 3. **Create Alias**
