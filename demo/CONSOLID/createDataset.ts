@@ -13,6 +13,7 @@ export async function createDataset(actors) {
         const actor = actors[a]
 
         const projects = await getMyProjects(actor)
+        console.log('projects :>> ', projects);
         const project = projects[0]
         const projectId = project.split('/').pop()
 

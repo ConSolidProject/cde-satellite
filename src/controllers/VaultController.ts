@@ -55,7 +55,7 @@ const VaultController = {
       const data = await session.fetch(resource)
       const contentType = data.headers.get('content-type'); // Get the content type from response headers
       const content = await data.text(); // Fetch and store the response body as a Buffer
-  
+   
       if (contentType) {
         res.setHeader('Content-Type', contentType); // Set content type based on the response
       } else {

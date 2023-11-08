@@ -30,6 +30,9 @@ async function getRequirementsPBAC(endpoint, uri, mode, requester, pbacCredentia
     // only the applicable rules need to be checked for visitor requirements
     const validRules: any = []
     const trustedAuthorities = await getExplicitAuthorities(endpoint)
+
+
+
     for (const r of Object.keys(applicableRules)) {
         const rule = applicableRules[r]
 
@@ -46,7 +49,6 @@ async function getRequirementsPBAC(endpoint, uri, mode, requester, pbacCredentia
             } else if (authority.type === "implicit") {
                 // which certificates were signed by a non-explicit authority?
                 const implicitAuthorities = certificates.filter(i => !trustedAuthorities.includes(i.issuer)).map(i => i.issuer)
-
                 // what do we know of this authority? =  all certificates that were signed by a trusted authority, with this authority as a subject
                 for (const a of implicitAuthorities) {
                     const allInfo = certificates.filter(i => i.actor == a && trustedAuthorities.includes(i.issuer))
@@ -62,8 +64,8 @@ async function getRequirementsPBAC(endpoint, uri, mode, requester, pbacCredentia
                                 certificates.filter(i => i.issuer == cert.actor).forEach(c => certificatesToCheck.push(c))
                             }
                         }
-                    }
-                }
+                    } 
+                } 
             }
         }
 

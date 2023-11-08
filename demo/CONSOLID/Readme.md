@@ -52,10 +52,13 @@ If you want to use the scrips with your own project, you can change the resource
 ### Create Infrastructure
 This script will create the necessary accounts for the demo, based on the JSON document in the folder [/userConfigs](/userConfigs).
 - `cd CONSOLID/actions`
-- `ts-node action_createInfrastructure.ts --userConfig "duplex"`
+- `ts-node action_createInfra.ts --userConfig "duplex"`
 
 ### Create Federated Project
-This script will create a new ConSolid project in the owner's vault. A workflow is mimicked where after initiation, invites to participate are sent to the architect, engineer and facility manager ([LDN Notifications](https://www.w3.org/TR/ldn/)). They will accept the invite and create a project access point on their Pod, which aggregates the original project from the owner. A notification is sent to the inbox of the owner, allowing them to aggregate the new partial projects in turn. The architect, engineer and facility manager do not need to aggregate each other's partial projects, as they may discover those through the owner's project access point. This process may take some minutes.
+This script will create a new ConSolid project in the owner's vault. A workflow is mimicked where after initiation, invites to participate are sent to the architect, engineer and facility manager ([LDN Notifications](https://www.w3.org/TR/ldn/)). They will accept the invite and create a project access point on their Pod, which aggregates the original project from the owner. A notification is sent to the inbox of the owner, allowing them to aggregate the new partial projects in turn. The architect, engineer and facility manager do not need to aggregate each other's partial projects, as they may discover those through the owner's project access point. This process may take some minutes. 
+- start the ConSolid satellite: 
+    - `cd ../../../`
+    - `npm run duplex`
 - `ts-node .\action_createProject.ts --userConfig "duplex" --initiator "owner"`
 
 ### Create Dataset

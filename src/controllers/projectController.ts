@@ -121,7 +121,7 @@ INSERT DATA {
       res.status(404).send('No satellite found')
     }
   },
-
+ 
   async getConSolidDatasets(req: Request, res: Response) {
     const { sparql: satellite, consolid } = await getSatellites(process.env.WEBID!)
     if (!satellite) {
@@ -132,7 +132,7 @@ INSERT DATA {
     if (!project) {
       res.status(404).send('Project not found')
       return
-    }
+    } 
     const distributionFilter = req.body.distributionFilter
     const datasetFilter = req.body.datasetFilter
     console.log('project :>> ', project);
@@ -145,7 +145,7 @@ INSERT DATA {
       if (!projectUrl) {
         res.status(404).send('Project not found')
         return
-      }
+      } 
 
       let content
       if (req.file) {content = req.file}

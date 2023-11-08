@@ -2,6 +2,8 @@
     "owner": {
         "name": "owner-duplex",
         "password": "test123",
+        "idp": "http://localhost:3000/",
+        "email": "owner-duplex@example.org",
         "consolid": "http://localhost:5001/",
         "resources": []
     },
@@ -10,6 +12,8 @@
         "password": "test123",
         "resources": ["../resources/duplex/duplex_architecture.ttl", "../resources/duplex/duplex_architecture.gltf"],
         "consolid": "http://localhost:5002/",
+        "email": "architect-duplex@example.org",
+        "idp": "http://localhost:3000/",
         "tags": ["duplex_architecture"],
         "align": true
     },
@@ -18,6 +22,8 @@
         "password": "test123",
         "resources": ["../resources/duplex/duplex_hvac.gltf", "../resources/duplex/duplex_hvac.ttl"],
         "consolid": "http://localhost:5003/",
+        "idp": "http://localhost:3000/",
+        "email": "engineer-duplex@example.org",
         "tags": ["duplex_hvac"],
         "align": true
     },
@@ -25,7 +31,8 @@
         "name": "fm-duplex",
         "password": "test123",
         "consolid": "http://localhost:5004/",
+        "idp": "http://localhost:3000/",
+        "email": "fm-duplex@example.org",
         "resources": ["../resources/duplex/crack.jpg"]
-
     }
 }

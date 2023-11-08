@@ -37,6 +37,7 @@ export async function createProjectProtocol(actors, project, initiator) {
     for (const actor of Object.keys(actors)) {
         if (actor !== initiator) {
             const response: any = await getUnreadInvitations(actors[actor])
+            console.log('response :>> ', response);
             // the others accept the invitation and create the project in their Pod, adding the one from the architect as a partial project
             const myEngine = new QueryEngine();
             const query = `prefix as: <https://www.w3.org/ns/activitystreams#> 
@@ -46,7 +47,9 @@ export async function createProjectProtocol(actors, project, initiator) {
                     as:object ?projectUrl .
             }`
 
+            console.log("starting");
             const result = await myEngine.queryBindings(query, { sources: response, fetch: actors[actor].fetch });
+            console.log('result :>> ', result);
             const data = await result.toArray().then(i => i.map((binding: any) => binding.get('projectUrl').id))
 
             if (data.length) {
