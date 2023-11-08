@@ -86,27 +86,6 @@ async function issueCertificate(actor, statements) {
     return token
 }
 
-async function proceed() {
-
-    // owner issues certificate to say that architect is part of the project
-    const archCert = await issueCertificate(owner, statements(architect.webId, "duplex"))
-
-    // architect issues certificate to say that bob is part of the project
-    const bobCert = await issueCertificate(architect, statements(bob.webId, "duplex"))
-
-    console.log('archCert :>> ', archCert);
-    console.log('bobCert :>> ', bobCert);
-
-    await createRule(engineer)
-
-    const projectUrl  = await getProject(architect)
-    const resourceUrl = await get3Dsource(architect, projectUrl.split('/').pop())
-    const data = await requestResourceWithPBAC(bob, engineer, resourceUrl, [archCert, bobCert])
-    return "done"
-}
-
-proceed().then(console.log)
-
 async function getProject(actor) {
     const projects =  await fetch(actor.consolid + "project", {headers: {"Authorization": actor.token}}).then(i => i.json())
     return projects[0]
@@ -247,3 +226,24 @@ async function addAuthorityToRequirement(actor, requirementUrl, authorityUri) {
     await fetch(actor.consolid + `${reqId}/authority`, options)
     return
 }
+
+async function proceed() {
+
+    // owner issues certificate to say that architect is part of the project
+    const archCert = await issueCertificate(owner, statements(architect.webId, "duplex"))
+
+    // architect issues certificate to say that bob is part of the project
+    const bobCert = await issueCertificate(architect, statements(bob.webId, "duplex"))
+
+    console.log('archCert :>> ', archCert);
+    console.log('bobCert :>> ', bobCert);
+
+    await createRule(engineer)
+
+    const projectUrl  = await getProject(architect)
+    const resourceUrl = await get3Dsource(architect, projectUrl.split('/').pop())
+    const data = await requestResourceWithPBAC(bob, engineer, resourceUrl, [archCert, bobCert])
+    return "done"
+}
+
+proceed().then(console.log)
