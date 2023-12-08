@@ -1,0 +1,2 @@
+# Demo reproduction code for the ConSolid ecosystem
+This folder contains the guidelines for reproducing a case study in the ConSolid ecosystem. The datasets used originate from the open source duplex project. The datasets belonging to the case study of the iGent tower (Zwijnaarde, Belgium) are restricted. However, the description of the case study can be found in the [PhD thesis of Jeroen Werbrouck](), which is to be published soon. The example scripts for the PBAC framework (Pattern-based Access Control) are available in the PBAC folder.
